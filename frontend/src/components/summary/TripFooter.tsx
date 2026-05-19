@@ -11,9 +11,9 @@ interface StatItemProps {
   value: string;
 }
 
-function StatItem({ label, value }: StatItemProps) {
+function StatItem({ label, value, className }: StatItemProps & { className?: string }) {
   return (
-    <div className="px-5 first:pl-0 last:pr-0">
+    <div className={['px-0 md:px-5 md:first:pl-0 md:last:pr-0', className].filter(Boolean).join(' ')}>
       <p className="text-[9px] font-semibold tracking-widest text-text-muted">{label}</p>
       <p className="mt-0.5 text-sm font-semibold text-text-primary">{value}</p>
     </div>
@@ -35,9 +35,14 @@ function TripStatStrip({ drivingHrs, fuelStops, totalDays, estimatedArrival }: T
   ];
 
   return (
-    <div className="flex items-start divide-x divide-border-subtle">
-      {stats.map((stat) => (
-        <StatItem key={stat.label} label={stat.label} value={stat.value} />
+    <div className="grid grid-cols-2 gap-3 md:flex md:items-start md:divide-x md:divide-border-subtle">
+      {stats.map((stat, index) => (
+        <StatItem
+          key={stat.label}
+          label={stat.label}
+          value={stat.value}
+          className={index === stats.length - 1 ? 'col-span-2 md:col-span-1' : undefined}
+        />
       ))}
     </div>
   );
@@ -63,7 +68,7 @@ export function TripFooter({
   const { totalDrivingHrs, fuelStopCount, estimatedArrival, restartDay } = summaryData;
 
   return (
-    <div className="shrink-0 border-t border-border-subtle bg-bg-base px-6 py-4">
+    <div className="shrink-0 border-t border-border-subtle bg-bg-base px-4 py-4 md:px-6">
       <TripStatStrip
         drivingHrs={totalDrivingHrs}
         fuelStops={fuelStopCount}
@@ -78,11 +83,11 @@ export function TripFooter({
         </AlertBanner>
       )}
 
-      <div className="mt-4 flex gap-3">
-        <Button variant="primary" className="flex-1 py-3" onClick={onViewPlan}>
+      <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row">
+        <Button variant="primary" className="w-full py-3 sm:flex-1" onClick={onViewPlan}>
           View route plan →
         </Button>
-        <Button variant="ghost" onClick={onChangeInputs}>
+        <Button variant="ghost" className="w-full sm:w-auto" onClick={onChangeInputs}>
           Change inputs
         </Button>
       </div>

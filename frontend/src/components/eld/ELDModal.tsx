@@ -5,6 +5,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '../ui/dialog';
+import { cn } from '../../lib/utils';
 import { ELDLogSheet } from './ELDLogSheet';
 import type { TripDay } from '../../types/trip';
 
@@ -37,8 +38,16 @@ export function ELDModal({ open, onClose, day, from, to, dayIndex }: ELDModalPro
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-[700px]">
-        <DialogHeader>
+      <DialogContent
+        className={cn(
+          'max-w-[700px]',
+          // Portrait phones: rotate dialog so the wide log uses viewport height as width
+          'max-md:flex max-md:h-[calc(100vw-1rem)] max-md:w-[calc(100dvh-1rem)] max-md:max-w-none',
+          'max-md:rotate-90 max-md:flex-col max-md:overflow-hidden',
+          'max-md:[&>button]:hidden',
+        )}
+      >
+        <DialogHeader className="max-md:shrink-0 max-md:px-4 max-md:py-3">
           <DialogTitle>
             Day
             {' '}
@@ -48,22 +57,22 @@ export function ELDModal({ open, onClose, day, from, to, dayIndex }: ELDModalPro
           </DialogTitle>
         </DialogHeader>
 
-        <div id="eld-log-sheet" className="px-6 py-2">
+        <div id="eld-log-sheet" className="min-h-0 flex-1 overflow-auto px-4 py-2 md:px-6">
           <ELDLogSheet day={day} from={from} to={to} dayIndex={dayIndex} />
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="max-md:shrink-0 max-md:gap-2 max-md:px-4 max-md:py-3">
           <button
             type="button"
             onClick={handlePrint}
-            className="rounded-lg border border-border-medium px-4 py-2 text-xs text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary"
+            className="rounded-lg border border-border-medium px-3 py-2 text-xs text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary md:px-4"
           >
             Download PDF
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg bg-accent px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-accent-dark"
+            className="rounded-lg bg-accent px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-accent-dark md:px-4"
           >
             Close
           </button>

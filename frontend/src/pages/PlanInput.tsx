@@ -129,7 +129,7 @@ export function PlanInput() {
 
       <main className="flex-1 overflow-y-auto">
         {/* Hero */}
-        <div className="relative overflow-hidden border-b border-border-subtle bg-bg-surface py-10">
+        <div className="relative overflow-hidden border-b border-border-subtle bg-bg-surface py-8 md:py-10">
           <RoadIllustration />
           <div className="relative z-10 mx-auto max-w-xl px-4">
             <Eyebrow color="accent" className="mb-1">TRIP PLANNER</Eyebrow>

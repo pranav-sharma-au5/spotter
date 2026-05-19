@@ -36,7 +36,7 @@ export function CycleGauge({ value, onChange }: CycleGaugeProps) {
 
       <div className="flex justify-between">
         {TICKS.map((t) => (
-          <span key={t} className="text-[10px] text-text-muted">{t}</span>
+          <span key={t} className="text-[10px] text-text-muted md:text-xs">{t}</span>
         ))}
       </div>
 

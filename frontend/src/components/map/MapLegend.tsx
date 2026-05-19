@@ -23,13 +23,13 @@ export function MapLegend({ presentTypes }: MapLegendProps) {
   if (types.length === 0) return null;
 
   return (
-    <div className="absolute bottom-4 left-4 flex flex-wrap gap-2 rounded-xl border border-border-subtle bg-bg-surface/90 px-3 py-2 backdrop-blur-sm">
+    <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1.5 rounded-xl border border-border-subtle bg-bg-surface/90 px-2 py-1.5 backdrop-blur-sm md:bottom-4 md:left-4 md:right-auto md:gap-2 md:px-3 md:py-2">
       {types.map((type) => {
         const cfg = EVENT_CONFIG[type];
         return (
           <div key={type} className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full" style={{ backgroundColor: cfg.colour }} />
-            <span className="text-[10px] text-text-secondary">{cfg.label}</span>
+            <span className="text-[9px] text-text-secondary md:text-[10px]">{cfg.label}</span>
           </div>
         );
       })}

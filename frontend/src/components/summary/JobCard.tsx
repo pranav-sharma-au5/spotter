@@ -33,8 +33,8 @@ interface BigStatProps {
 
 function BigStat({ value, label, bordered }: BigStatProps) {
   return (
-    <div className={bordered ? 'border-l border-border-subtle pl-6 text-right' : 'pr-6 text-right'}>
-      <p className="text-3xl font-bold tabular-nums text-text-primary">{value}</p>
+    <div className={bordered ? 'border-l border-border-subtle pl-4 text-right md:pl-6' : 'pr-4 text-right md:pr-6'}>
+      <p className="text-2xl font-bold tabular-nums text-text-primary md:text-3xl">{value}</p>
       <p className="text-[10px] uppercase tracking-widest text-text-muted">{label}</p>
     </div>
   );
@@ -52,8 +52,8 @@ export function JobCard({ summary, request }: JobCardProps) {
     <div className="flex shrink-0 items-stretch border-b border-border-medium bg-bg-surface shadow-sm">
       <div className="w-[3px] shrink-0 bg-accent" />
 
-      <div className="flex flex-1 items-start justify-between gap-8 px-6 py-5">
-        <div className="flex-1">
+      <div className="flex flex-1 flex-col gap-4 px-4 py-4 md:flex-row md:items-start md:justify-between md:gap-8 md:px-6 md:py-5">
+        <div className="min-w-0 flex-1">
           <Eyebrow color="accent">YOUR TRIP</Eyebrow>
           <p className="mt-1.5 text-xl font-semibold leading-snug text-text-primary">
             {summary.message}
@@ -68,7 +68,7 @@ export function JobCard({ summary, request }: JobCardProps) {
           <RestStopList steps={summary.rest_stop_steps} />
         </div>
 
-        <div className="flex shrink-0 items-center">
+        <div className="flex shrink-0 items-center self-start">
           <BigStat value={summary.total_days} label="days" />
           <BigStat value={formatMiles(summary.total_miles)} label="miles" bordered />
         </div>

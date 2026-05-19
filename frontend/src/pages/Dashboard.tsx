@@ -80,13 +80,13 @@ export function Dashboard() {
     <div className="flex h-screen flex-col bg-bg-base">
       <Topbar />
 
-      <main className="flex-1 overflow-y-auto px-8 py-8">
+      <main className="flex-1 overflow-y-auto px-4 py-6 md:px-8 md:py-8">
         <div className="mx-auto max-w-3xl">
           <DriverGreeting driverName="John" cycleUsed={0} cycleTotal={70} />
 
           <Eyebrow className="mb-3">TOOLS</Eyebrow>
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <ToolCardItem
               icon={<Route className="h-5 w-5" />}
               title="Plan route"
@@ -108,8 +108,8 @@ export function Dashboard() {
             />
           </div>
 
-          <div className="mt-10 flex justify-end">
-            <Button variant="primary" className="py-2.5" onClick={() => navigate('/plan')}>
+          <div className="mt-10 flex justify-stretch sm:justify-end">
+            <Button variant="primary" className="w-full py-2.5 sm:w-auto" onClick={() => navigate('/plan')}>
               Plan a trip →
             </Button>
           </div>
