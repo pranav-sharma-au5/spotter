@@ -1,6 +1,37 @@
 import { useNavigate } from 'react-router-dom';
 import { Route, Clock, FileCheck } from 'lucide-react';
 import { Topbar } from '../components/layout/Topbar';
+import { Button } from '../components/ui/Button';
+import { Eyebrow } from '../components/ui/Eyebrow';
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+interface DriverGreetingProps {
+  driverName?: string;
+  cycleUsed?: number;
+  cycleTotal?: number;
+}
+
+function DriverGreeting({
+  driverName = 'Driver',
+  cycleUsed = 0,
+  cycleTotal = 70,
+}: DriverGreetingProps) {
+  return (
+    <div className="mb-8">
+      <h1 className="text-2xl font-semibold text-text-primary">
+        Good morning, {driverName}
+      </h1>
+      <p className="mt-1 text-sm text-text-secondary">
+        Cycle used:{' '}
+        <span className="text-text-primary">{cycleUsed} hrs</span>
+        {' '}—{' '}
+        <span className="text-text-primary">{cycleTotal - cycleUsed} hrs</span>{' '}
+        remaining
+      </p>
+    </div>
+  );
+}
 
 interface ToolCard {
   icon: React.ReactNode;
@@ -40,6 +71,8 @@ function ToolCardItem({ icon, title, description, badge, active, onClick }: Tool
   );
 }
 
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export function Dashboard() {
   const navigate = useNavigate();
 
@@ -49,22 +82,9 @@ export function Dashboard() {
 
       <main className="flex-1 overflow-y-auto px-8 py-8">
         <div className="mx-auto max-w-3xl">
-          <div className="mb-8">
-            <h1 className="text-2xl font-semibold text-text-primary">Good morning, John</h1>
-            <p className="mt-1 text-sm text-text-secondary">
-              Cycle used:
-              {' '}
-              <span className="text-text-primary">0 hrs</span>
-              {' '}
-              —
-              {' '}
-              <span className="text-text-primary">70 hrs</span>
-              {' '}
-              remaining
-            </p>
-          </div>
+          <DriverGreeting driverName="John" cycleUsed={0} cycleTotal={70} />
 
-          <p className="mb-3 text-[10px] font-semibold tracking-widest text-text-muted">TOOLS</p>
+          <Eyebrow className="mb-3">TOOLS</Eyebrow>
 
           <div className="grid grid-cols-3 gap-4">
             <ToolCardItem
@@ -89,13 +109,9 @@ export function Dashboard() {
           </div>
 
           <div className="mt-10 flex justify-end">
-            <button
-              type="button"
-              onClick={() => navigate('/plan')}
-              className="rounded-xl bg-accent px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-dark"
-            >
+            <Button variant="primary" className="py-2.5" onClick={() => navigate('/plan')}>
               Plan a trip →
-            </button>
+            </Button>
           </div>
         </div>
       </main>

@@ -88,7 +88,7 @@ def test_full_plan_single_day(sample_route_geometry):
 
     assert isinstance(plan, TripPlan)
     assert plan.summary.total_days == 1
-    assert len(plan.summary.rest_stops) == 0
+    assert len(plan.summary.rest_stop_steps) == 0
     assert plan.summary.restart_required is False
 
     all_events = [e for day in plan.days for e in day.events]
@@ -113,7 +113,7 @@ def test_full_plan_multi_day(sample_route_geometry):
     plan = planner.plan(request)
 
     assert plan.summary.total_days >= 2
-    assert len(plan.summary.rest_stops) >= 1
+    assert len(plan.summary.rest_stop_steps) >= 1
     assert plan.summary.total_miles == 900.0
 
 

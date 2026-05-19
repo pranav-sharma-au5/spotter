@@ -11,12 +11,8 @@ class RouteNotFoundError(HOSPlannerException):
 
 
 class FacilityDataError(HOSPlannerException):
-    """Raised when the Overpass API call fails. Should be handled gracefully."""
+    """Raised when an ORS POI API call fails unrecoverably."""
 
 
 class InsufficientCycleHoursError(HOSPlannerException):
     """Raised when cycle hours are exhausted and a restart cannot be accommodated."""
-
-
-class InvalidTripRequestError(HOSPlannerException):
-    """Raised when the trip request contains invalid or inconsistent data."""

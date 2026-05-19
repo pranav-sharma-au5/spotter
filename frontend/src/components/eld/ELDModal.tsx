@@ -6,17 +6,20 @@ import {
   DialogFooter,
 } from '../ui/dialog';
 import { ELDLogSheet } from './ELDLogSheet';
-import type { TripDay, TripRequest } from '../../types/trip';
+import type { TripDay } from '../../types/trip';
 
-interface ELDModalProps {
+export interface ELDModalProps {
   open: boolean;
   onClose: () => void;
   day: TripDay;
-  request: TripRequest;
+  /** Route origin — displayed in the log sheet "From" field */
+  from: string;
+  /** Route destination — displayed in the log sheet "To" field */
+  to: string;
   dayIndex: number;
 }
 
-export function ELDModal({ open, onClose, day, request, dayIndex }: ELDModalProps) {
+export function ELDModal({ open, onClose, day, from, to, dayIndex }: ELDModalProps) {
   const handlePrint = () => {
     const el = document.getElementById('eld-log-sheet');
     if (!el) return;
@@ -46,7 +49,7 @@ export function ELDModal({ open, onClose, day, request, dayIndex }: ELDModalProp
         </DialogHeader>
 
         <div id="eld-log-sheet" className="px-6 py-2">
-          <ELDLogSheet day={day} request={request} dayIndex={dayIndex} />
+          <ELDLogSheet day={day} from={from} to={to} dayIndex={dayIndex} />
         </div>
 
         <DialogFooter>

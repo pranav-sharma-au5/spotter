@@ -1,28 +1,14 @@
 """HOS Calculator Service — pure business logic, no Django, no external calls."""
 from __future__ import annotations
 
+import logging
+
 from trip.domain.enums import ConstraintType, EventType
 from trip.domain.models import Coordinate, ScheduledStop, TripDay
+from trip.exceptions import InsufficientCycleHoursError
+from trip.utils import coord_at_mile
 
-
-def _coord_at_mile(
-    geometry: list[Coordinate],
-    cumulative_miles: list[float],
-    target: float,
-) -> tuple[float, float]:
-    """Linearly interpolate (lat, lng) at *target* miles along the route."""
-    if not geometry:
-        return 0.0, 0.0
-    if target <= 0:
-        return geometry[0].lat, geometry[0].lng
-    for i in range(len(cumulative_miles) - 1):
-        if cumulative_miles[i] <= target <= cumulative_miles[i + 1]:
-            seg = cumulative_miles[i + 1] - cumulative_miles[i]
-            t = (target - cumulative_miles[i]) / seg if seg else 0.0
-            lat = geometry[i].lat + t * (geometry[i + 1].lat - geometry[i].lat)
-            lng = geometry[i].lng + t * (geometry[i + 1].lng - geometry[i].lng)
-            return lat, lng
-    return geometry[-1].lat, geometry[-1].lng
+_log = logging.getLogger(__name__)
 
 
 class HOSCalculatorService:
@@ -85,8 +71,6 @@ class HOSCalculatorService:
             InsufficientCycleHoursError: if cycle hours are exhausted with no
                 room for a restart before the trip can begin.
         """
-        from trip.exceptions import InsufficientCycleHoursError
-
         if cycle_used_hrs >= self.max_cycle_hrs:
             raise InsufficientCycleHoursError(
                 f"Cycle hours exhausted ({cycle_used_hrs:.1f}/{self.max_cycle_hrs:.0f} hrs). "
@@ -119,8 +103,6 @@ class HOSCalculatorService:
         are interpolated from the route geometry so every stop has a real
         lat/lng on the map even before facility enrichment.
         """
-        from trip.exceptions import InsufficientCycleHoursError
-
         events: list[ScheduledStop] = []
 
         # --- Mutable simulation state ---
@@ -163,7 +145,7 @@ class HOSCalculatorService:
                 cycle_hrs += drive_hrs
                 pos = stop_mile
 
-            lat, lng = _coord_at_mile(geometry, cumulative_miles, stop_mile)
+            lat, lng = coord_at_mile(geometry, cumulative_miles, stop_mile)
             start_hr = duty_hrs_today
 
             events.append(
@@ -208,7 +190,14 @@ class HOSCalculatorService:
         while pos < total_miles:
             iterations += 1
             if iterations > _MAX_ITERATIONS:
-                break
+                _log.error(
+                    "HOS simulation exceeded %d iterations at mile %.1f / %.1f",
+                    _MAX_ITERATIONS, pos, total_miles,
+                )
+                raise InsufficientCycleHoursError(
+                    "Trip simulation could not complete within iteration limits. "
+                    "Check for degenerate input (zero-distance segments, extreme cycle hours)."
+                )
 
             break_deadline = pos + max(
                 0.0, (self.drive_hrs_before_break - drive_hrs_since_break)

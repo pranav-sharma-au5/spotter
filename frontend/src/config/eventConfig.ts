@@ -5,7 +5,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import type { EventType } from '../types/trip';
 
-interface EventConfigEntry {
+export interface EventConfigEntry {
   colour: string;
   label: string;
   icon: LucideIcon;

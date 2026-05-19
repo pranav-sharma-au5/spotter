@@ -25,14 +25,6 @@ class Facility(BaseModel):
     stop_info: "StopInfo | None" = None
 
 
-class StopWindow(BaseModel):
-    constraint: ConstraintType
-    earliest_mile: float
-    latest_mile: float
-    duration_hrs: float
-    can_combine_with: list[ConstraintType] = Field(default_factory=list)
-
-
 class StopInfo(BaseModel):
     """Extra facility detail returned by ORS POI — all fields are optional."""
     category: str = ""        # e.g. "Fuel Station", "Truck Stop"
@@ -84,10 +76,9 @@ class TripSummary(BaseModel):
     total_miles: float
     cycle_hours_used_after_trip: float
     cycle_hours_remaining: float
-    rest_stops: list[dict]        # kept for backward compatibility
     rest_stop_steps: list[RestStopStep] = Field(default_factory=list)
     restart_required: bool
-    message: str                  # short header only, e.g. "Your trip takes 3 days."
+    message: str
 
 
 class TripPlan(BaseModel):

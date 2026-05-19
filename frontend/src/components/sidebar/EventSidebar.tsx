@@ -3,8 +3,9 @@ import { DayAccordion } from './DayAccordion';
 
 export function EventSidebar() {
   const plan = useTripStore((s) => s.plan);
+  const request = useTripStore((s) => s.request);
 
-  if (!plan) return null;
+  if (!plan || !request) return null;
 
   return (
     <aside className="flex w-[260px] shrink-0 flex-col border-r border-border-subtle bg-bg-surface">
@@ -17,6 +18,8 @@ export function EventSidebar() {
             key={day.day_number}
             day={day}
             defaultOpen={idx === 0}
+            from={request.current_location}
+            to={request.dropoff_location}
           />
         ))}
       </div>

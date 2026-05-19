@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { LocationAutocomplete } from './LocationAutocomplete';
 import { GPSButton } from './GPSButton';
 import type { LocationSuggestion } from '../../types/trip';
@@ -51,16 +52,25 @@ function SpineDot({ dotColour, dotSize = 10, showConnector = true, children }: S
 }
 
 export function RouteSpine({ values, onChange, onSelect }: RouteSpineProps) {
-  /**
-   * GPS resolves → call parent's onChange + onSelect with the synthetic
-   * suggestion. Because the user never typed (autocompleteActive=false inside
-   * LocationAutocomplete), no Photon query fires for the GPS address.
-   * If the user types afterward, autocompleteActive becomes true and
-   * queries resume normally.
-   */
+  // GPS can only resolve the "current location" field.
+  // If it resolves to a location outside US/Canada we surface the error here
+  // and clear it the moment the user starts typing again.
+  const [gpsError, setGpsError] = useState<string | null>(null);
+
   const handleGPSResolved = (suggestion: LocationSuggestion) => {
+    setGpsError(null);
     onChange('current', suggestion.shortName);
     onSelect('current', suggestion);
+  };
+
+  const handleGPSError = (message: string) => {
+    setGpsError(message);
+  };
+
+  const handleCurrentChange = (v: string) => {
+    // Clear any lingering GPS error as soon as the driver edits the field
+    if (gpsError) setGpsError(null);
+    onChange('current', v);
   };
 
   return (
@@ -71,9 +81,15 @@ export function RouteSpine({ values, onChange, onSelect }: RouteSpineProps) {
           label="WHERE YOU'RE PARKED"
           placeholder="Enter your current location"
           value={values.current}
-          onChange={(v) => onChange('current', v)}
+          onChange={handleCurrentChange}
           onSelect={(s) => onSelect('current', s)}
-          rightSlot={<GPSButton onResolved={handleGPSResolved} />}
+          error={gpsError ?? undefined}
+          rightSlot={
+            <GPSButton
+              onResolved={handleGPSResolved}
+              onError={handleGPSError}
+            />
+          }
         />
       </SpineDot>
 

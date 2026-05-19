@@ -1,6 +1,35 @@
+import {
+  CheckCircle, AlertTriangle, AlertCircle,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+
 const TOTAL_HOURS = 70;
 
-type Severity = 'ok' | 'warn' | 'danger';
+export type Severity = 'ok' | 'warn' | 'danger';
+
+export interface SeverityConfig {
+  icon: LucideIcon;
+  hintBg: string;
+  remainingColour: string;
+}
+
+export const SEVERITY_CONFIG: Record<Severity, SeverityConfig> = {
+  ok: {
+    icon: CheckCircle,
+    hintBg: 'bg-ev-fuel/10 text-ev-fuel border-ev-fuel/20',
+    remainingColour: 'text-ev-fuel',
+  },
+  warn: {
+    icon: AlertTriangle,
+    hintBg: 'bg-ev-break/10 text-ev-break border-ev-break/20',
+    remainingColour: 'text-ev-break',
+  },
+  danger: {
+    icon: AlertCircle,
+    hintBg: 'bg-red-500/10 text-red-400 border-red-500/20',
+    remainingColour: 'text-red-400',
+  },
+};
 
 interface CycleStatus {
   remaining: number;

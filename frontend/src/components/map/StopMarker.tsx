@@ -1,6 +1,7 @@
 import { Marker, Popup } from 'react-map-gl/maplibre';
 import { EVENT_CONFIG } from '../../config/eventConfig';
 import { formatHours } from '../../utils/format';
+import type { EventConfigEntry } from '../../config/eventConfig';
 import type { ScheduledStop } from '../../types/trip';
 
 interface StopMarkerProps {
@@ -10,9 +11,104 @@ interface StopMarkerProps {
   onClose?: () => void;
 }
 
-export function StopMarker({
-  event, isActive, onClick, onClose,
-}: StopMarkerProps) {
+// ── Popup content ─────────────────────────────────────────────────────────────
+
+interface StopPopupContentProps {
+  config: EventConfigEntry;
+  event: ScheduledStop;
+  onClose?: () => void;
+}
+
+function StopPopupContent({ config, event, onClose }: StopPopupContentProps) {
+  return (
+    <div
+      style={{
+        backgroundColor: 'var(--bg-surface)',
+        border: '1px solid var(--border-subtle)',
+        borderRadius: 8,
+        padding: '8px 12px',
+        minWidth: 160,
+        maxWidth: 240,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+        <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
+          {config.label}
+        </p>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          style={{
+            flexShrink: 0,
+            background: 'none',
+            border: 'none',
+            padding: '0 0 0 4px',
+            cursor: 'pointer',
+            fontSize: 13,
+            lineHeight: 1,
+            color: 'var(--text-muted)',
+          }}
+        >
+          ×
+        </button>
+      </div>
+
+      <p style={{ fontSize: 10, color: 'var(--text-secondary)', margin: '2px 0 0' }}>
+        {event.location}
+      </p>
+
+      {event.stop_info && (
+        <div style={{ marginTop: 5, borderTop: '1px solid var(--border-subtle)', paddingTop: 5, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {event.stop_info.opening_hours && (
+            <p style={{ fontSize: 9, color: 'var(--text-muted)', margin: 0 }}>
+              🕐 {event.stop_info.opening_hours}
+            </p>
+          )}
+          {event.stop_info.phone && (
+            <p style={{ fontSize: 9, color: 'var(--text-muted)', margin: 0 }}>
+              📞 {event.stop_info.phone}
+            </p>
+          )}
+          {event.stop_info.website && (
+            <a
+              href={event.stop_info.website}
+              target="_blank"
+              rel="noreferrer"
+              style={{ fontSize: 9, color: 'var(--accent)', margin: 0, textDecoration: 'none' }}
+            >
+              🔗 Website
+            </a>
+          )}
+        </div>
+      )}
+
+      <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: '4px 0 0' }}>
+        {formatHours(event.duration_hrs)} stop
+      </p>
+
+      {event.satisfies.length > 1 && (
+        <span
+          style={{
+            display: 'inline-block',
+            marginTop: 4,
+            fontSize: 9,
+            backgroundColor: '#63992220',
+            color: '#639922',
+            borderRadius: 4,
+            padding: '1px 5px',
+          }}
+        >
+          combined stop
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ── Marker + popup ────────────────────────────────────────────────────────────
+
+export function StopMarker({ event, isActive, onClick, onClose }: StopMarkerProps) {
   const config = EVENT_CONFIG[event.type];
   const isLarge = config.markerSize === 'lg';
   const size = isLarge ? 13 : 10;
@@ -28,7 +124,6 @@ export function StopMarker({
           className={onClick ? 'cursor-pointer transition-transform hover:scale-110' : ''}
           style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}
         >
-          {/* Coloured label chip — always visible for every stop type */}
           <div
             style={{
               backgroundColor: config.colour,
@@ -46,8 +141,6 @@ export function StopMarker({
           >
             {config.label}
           </div>
-
-          {/* Dot */}
           <div
             style={{
               width: size,
@@ -71,87 +164,7 @@ export function StopMarker({
           onClose={onClose}
           style={{ padding: 0 }}
         >
-          <div
-            style={{
-              backgroundColor: 'var(--bg-surface)',
-              border: '1px solid var(--border-subtle)',
-              borderRadius: 8,
-              padding: '8px 12px',
-              minWidth: 160,
-              maxWidth: 240,
-            }}
-          >
-            {/* Header row: label + close button */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
-              <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
-                {config.label}
-              </p>
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Close"
-                style={{
-                  flexShrink: 0,
-                  background: 'none',
-                  border: 'none',
-                  padding: '0 0 0 4px',
-                  cursor: 'pointer',
-                  fontSize: 13,
-                  lineHeight: 1,
-                  color: 'var(--text-muted)',
-                }}
-              >
-                ×
-              </button>
-            </div>
-            <p style={{ fontSize: 10, color: 'var(--text-secondary)', margin: '2px 0 0' }}>
-              {event.location}
-            </p>
-
-            {event.stop_info && (
-              <div style={{ marginTop: 5, borderTop: '1px solid var(--border-subtle)', paddingTop: 5, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {event.stop_info.opening_hours && (
-                  <p style={{ fontSize: 9, color: 'var(--text-muted)', margin: 0 }}>
-                    🕐 {event.stop_info.opening_hours}
-                  </p>
-                )}
-                {event.stop_info.phone && (
-                  <p style={{ fontSize: 9, color: 'var(--text-muted)', margin: 0 }}>
-                    📞 {event.stop_info.phone}
-                  </p>
-                )}
-                {event.stop_info.website && (
-                  <a
-                    href={event.stop_info.website}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{ fontSize: 9, color: 'var(--accent)', margin: 0, textDecoration: 'none' }}
-                  >
-                    🔗 Website
-                  </a>
-                )}
-              </div>
-            )}
-
-            <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: '4px 0 0' }}>
-              {formatHours(event.duration_hrs)} stop
-            </p>
-            {event.satisfies.length > 1 && (
-              <span
-                style={{
-                  display: 'inline-block',
-                  marginTop: 4,
-                  fontSize: 9,
-                  backgroundColor: '#63992220',
-                  color: '#639922',
-                  borderRadius: 4,
-                  padding: '1px 5px',
-                }}
-              >
-                combined stop
-              </span>
-            )}
-          </div>
+          <StopPopupContent config={config} event={event} onClose={onClose} />
         </Popup>
       )}
     </>

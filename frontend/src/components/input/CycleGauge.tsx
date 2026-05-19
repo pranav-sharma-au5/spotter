@@ -1,5 +1,4 @@
-import { CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
-import { useCycleStatus } from '../../hooks/useCycleStatus';
+import { useCycleStatus, SEVERITY_CONFIG } from '../../hooks/useCycleStatus';
 
 const TICKS = [0, 10, 20, 30, 40, 50, 60, 70];
 const TOTAL = 70;
@@ -11,21 +10,8 @@ interface CycleGaugeProps {
 
 export function CycleGauge({ value, onChange }: CycleGaugeProps) {
   const { remaining, severity, colour, hintMessage } = useCycleStatus(value);
-  const fillPct = (value / TOTAL) * 100;
 
-  const Icon = severity === 'ok' ? CheckCircle : severity === 'warn' ? AlertTriangle : AlertCircle;
-
-  const hintBg = severity === 'ok'
-    ? 'bg-ev-fuel/10 text-ev-fuel border-ev-fuel/20'
-    : severity === 'warn'
-      ? 'bg-ev-break/10 text-ev-break border-ev-break/20'
-      : 'bg-red-500/10 text-red-400 border-red-500/20';
-
-  const remainingColour = severity === 'ok'
-    ? 'text-ev-fuel'
-    : severity === 'warn'
-      ? 'text-ev-break'
-      : 'text-red-400';
+  const { icon: Icon, hintBg, remainingColour } = SEVERITY_CONFIG[severity];
 
   return (
     <div className="space-y-3">
@@ -46,13 +32,6 @@ export function CycleGauge({ value, onChange }: CycleGaugeProps) {
           </p>
           <p className="text-[10px] text-text-muted">remaining</p>
         </div>
-      </div>
-
-      <div className="relative h-2 overflow-hidden rounded-full bg-bg-elevated">
-        <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{ width: `${fillPct}%`, backgroundColor: colour }}
-        />
       </div>
 
       <div className="flex justify-between">

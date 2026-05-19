@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  darkMode: 'class',
   content: [
     './index.html',
     './src/**/*.{ts,tsx}',
@@ -31,7 +30,7 @@ module.exports = {
         'ev-pickup':  '#D85A30',
         'ev-dropoff': '#D4537E',
         'ev-restart': '#7F77DD',
-        'ev-start':   'var(--ev-start)',
+        'ev-start':   '#000000',
       },
     },
   },

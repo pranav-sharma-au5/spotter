@@ -3,6 +3,9 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import { Topbar } from '../components/layout/Topbar';
 import { RouteSpine } from '../components/input/RouteSpine';
 import { CycleGauge } from '../components/input/CycleGauge';
+import { Button } from '../components/ui/Button';
+import { AlertBanner } from '../components/ui/AlertBanner';
+import { Eyebrow } from '../components/ui/Eyebrow';
 import { useTripPlan } from '../hooks/useTripPlan';
 import { useTripStore } from '../stores/tripStore';
 import type { RouteField, RouteValues } from '../components/input/RouteSpine';
@@ -126,12 +129,10 @@ export function PlanInput() {
 
       <main className="flex-1 overflow-y-auto">
         {/* Hero */}
-        <div className="relative overflow-hidden border-b border-border-subtle bg-bg-surface px-8 py-10">
+        <div className="relative overflow-hidden border-b border-border-subtle bg-bg-surface py-10">
           <RoadIllustration />
-          <div className="relative z-10">
-            <p className="mb-1 text-[10px] font-semibold tracking-widest text-accent">
-              TRIP PLANNER
-            </p>
+          <div className="relative z-10 mx-auto max-w-xl px-4">
+            <Eyebrow color="accent" className="mb-1">TRIP PLANNER</Eyebrow>
             <h1 className="text-2xl font-semibold text-text-primary">Where are you headed?</h1>
             <p className="mt-1.5 text-sm text-text-secondary">
               We&apos;ll handle the rest stops, fuel, and HOS logs.
@@ -154,26 +155,17 @@ export function PlanInput() {
             <CycleGauge value={cycleHrs} onChange={setCycleHrs} />
           </div>
 
-          {/* API error */}
           {errorMessage && (
-            <div className="flex items-start gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-400" />
-              <p className="text-xs text-red-400">{errorMessage}</p>
-            </div>
+            <AlertBanner icon={<AlertCircle />}>{errorMessage}</AlertBanner>
           )}
 
           {/* Submit */}
           <div className="space-y-2">
-            <button
-              type="button"
-              onClick={handleSubmit}
+            <Button
+              variant="primary"
               disabled={!canSubmit || isPending}
-              className={[
-                'flex h-12 w-full flex-col items-center justify-center rounded-xl text-sm font-medium transition-colors',
-                canSubmit && !isPending
-                  ? 'bg-accent text-white hover:bg-accent-dark'
-                  : 'cursor-not-allowed bg-bg-elevated text-text-muted',
-              ].join(' ')}
+              onClick={handleSubmit}
+              className="flex h-12 w-full flex-col items-center justify-center py-0"
             >
               {isPending ? (
                 <span className="flex items-center gap-2">
@@ -186,7 +178,7 @@ export function PlanInput() {
                   <span className="text-[11px] opacity-65">route map + ELD</span>
                 </>
               )}
-            </button>
+            </Button>
 
             {!canSubmit && !isPending && (
               <p className="text-center text-[11px] text-text-muted">

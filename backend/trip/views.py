@@ -1,4 +1,6 @@
 """DRF views for the trip planning API."""
+import logging
+
 from django.conf import settings
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -6,6 +8,7 @@ from rest_framework.views import APIView
 
 from trip.domain.models import TripRequest
 from trip.exceptions import (
+    FacilityDataError,
     GeocodingError,
     InsufficientCycleHoursError,
     RouteNotFoundError,
@@ -18,6 +21,8 @@ from trip.services.map_client import OpenRouteServiceClient
 from trip.services.routing import RoutingService
 from trip.services.summary import SummaryService
 from trip.services.trip_planner import TripPlannerService
+
+_log = logging.getLogger(__name__)
 
 
 def _build_planner() -> TripPlannerService:
@@ -52,6 +57,10 @@ def _build_planner() -> TripPlannerService:
     )
 
 
+# Single shared instance — avoids rebuilding the httpx connection pool per request.
+_planner: TripPlannerService = _build_planner()
+
+
 class TripPlanView(APIView):
     """POST /api/v1/trip/plan/ — generate an HOS-compliant trip plan."""
 
@@ -64,10 +73,9 @@ class TripPlanView(APIView):
             )
 
         trip_request = TripRequest(**serializer.validated_data)
-        planner = _build_planner()
 
         try:
-            plan = planner.plan(trip_request)
+            plan = _planner.plan(trip_request)
         except GeocodingError as exc:
             return Response(
                 {"error": "location_not_found", "detail": str(exc)},
@@ -83,9 +91,15 @@ class TripPlanView(APIView):
                 {"error": "insufficient_hours", "detail": str(exc)},
                 status=422,
             )
-        except Exception as exc:  # noqa: BLE001
+        except FacilityDataError as exc:
             return Response(
-                {"error": "internal_error", "detail": str(exc)},
+                {"error": "facility_data_unavailable", "detail": str(exc)},
+                status=503,
+            )
+        except Exception:  # noqa: BLE001
+            _log.exception("Unhandled error in TripPlanView for request data: %s", request.data)
+            return Response(
+                {"error": "internal_error", "detail": "An unexpected error occurred."},
                 status=500,
             )
 

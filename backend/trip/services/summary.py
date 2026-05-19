@@ -40,7 +40,6 @@ class SummaryService:
         cycle_remaining = max(0.0, max_cycle_hrs - cycle_used_after)
 
         # Overnight rests only (not breaks or fuel)
-        rest_stops: list[dict] = []
         rest_stop_steps: list[RestStopStep] = []
         night = 0
         for day in days:
@@ -48,17 +47,6 @@ class SummaryService:
                 if event.type == EventType.REST:
                     night += 1
                     city = (event.stop_info.city if event.stop_info else "") or ""
-                    rest_stops.append(
-                        {
-                            "day": day.day_number,
-                            "location": event.location,
-                            "city": city,
-                            "lat": event.lat,
-                            "lng": event.lng,
-                            "miles_from_start": event.miles_from_start,
-                            "duration_hrs": event.duration_hrs,
-                        }
-                    )
                     rest_stop_steps.append(
                         RestStopStep(
                             night=night,
@@ -86,7 +74,6 @@ class SummaryService:
             total_miles=round(total_miles, 1),
             cycle_hours_used_after_trip=round(cycle_used_after, 2),
             cycle_hours_remaining=round(cycle_remaining, 2),
-            rest_stops=rest_stops,
             rest_stop_steps=rest_stop_steps,
             restart_required=restart_required,
             message=message,
@@ -103,12 +90,10 @@ class SummaryService:
         Sum on-duty hours from the last restart forward.
         """
         total = 0.0
-        after_restart = False
         for day in days:
             for event in day.events:
                 if event.type == EventType.RESTART:
                     total = 0.0
-                    after_restart = True
                 elif event.type != EventType.REST:
                     total += event.duration_hrs
         return min(total, max_cycle_hrs)

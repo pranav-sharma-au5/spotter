@@ -1,13 +1,17 @@
 """Abstract map client and OpenRouteService implementation."""
 from __future__ import annotations
 
-import math
+import logging
 from abc import ABC, abstractmethod
 
 import httpx
 from pydantic import BaseModel
 
 from trip.domain.models import Coordinate
+from trip.exceptions import GeocodingError, RouteNotFoundError
+from trip.utils import haversine_miles
+
+_log = logging.getLogger(__name__)
 
 
 class RouteSegment(BaseModel):
@@ -56,8 +60,6 @@ class OpenRouteServiceClient(AbstractMapClient):
 
     def geocode(self, address: str) -> Coordinate:
         """Geocode an address string using the ORS geocode/search endpoint."""
-        from trip.exceptions import GeocodingError
-
         url = f"{self._base_url}/geocode/search"
         params = {"api_key": self._api_key, "text": address, "size": 1}
 
@@ -110,16 +112,6 @@ class OpenRouteServiceClient(AbstractMapClient):
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _haversine_miles(a: Coordinate, b: Coordinate) -> float:
-        """Straight-line distance between two coordinates in miles."""
-        R = 3_958.8  # Earth radius in miles
-        lat1, lat2 = math.radians(a.lat), math.radians(b.lat)
-        dlat = math.radians(b.lat - a.lat)
-        dlng = math.radians(b.lng - a.lng)
-        h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlng / 2) ** 2
-        return R * 2 * math.asin(math.sqrt(h))
-
-    @staticmethod
     def _decode_polyline(encoded: str) -> list[Coordinate]:
         """Decode a Google/ORS encoded polyline (precision 5) into Coordinates."""
         coords: list[Coordinate] = []
@@ -144,8 +136,6 @@ class OpenRouteServiceClient(AbstractMapClient):
 
     def get_route(self, waypoints: list[Coordinate]) -> RouteResult:
         """Get a driving-HGV route through the given waypoints via ORS directions."""
-        from trip.exceptions import RouteNotFoundError
-
         if len(waypoints) < 2:
             raise RouteNotFoundError("At least two waypoints are required.")
 
@@ -165,7 +155,8 @@ class OpenRouteServiceClient(AbstractMapClient):
             if not response.is_success:
                 try:
                     ors_detail = response.json()
-                except Exception:
+                except (ValueError, KeyError):
+                    _log.debug("Could not parse ORS error body as JSON; falling back to text")
                     ors_detail = response.text
                 raise RouteNotFoundError(
                     f"Routing request failed ({response.status_code}): {ors_detail}"
@@ -203,7 +194,7 @@ class OpenRouteServiceClient(AbstractMapClient):
         else:
             # Proportional split by haversine distance
             leg_dists = [
-                self._haversine_miles(waypoints[i], waypoints[i + 1])
+                haversine_miles(waypoints[i].lat, waypoints[i].lng, waypoints[i + 1].lat, waypoints[i + 1].lng)
                 for i in range(len(waypoints) - 1)
             ]
             total_hav = sum(leg_dists) or 1.0

@@ -90,6 +90,28 @@ export function buildSegments(day: TripDay): Segment[] {
   return segments;
 }
 
+// ── ELDLogSheet data utilities ────────────────────────────────────────────────
+
+export function getLogDate(dayIndex: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + dayIndex);
+  return d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+}
+
+export function calcTotalMiles(day: TripDay): number {
+  return day.events.reduce((sum, e) => sum + (e.type === 'drive' ? e.miles_from_prev : 0), 0);
+}
+
+export function calcRowHours(day: TripDay): Record<0 | 1 | 2 | 3, number> {
+  const segments = buildSegments(day);
+  const totals: Record<0 | 1 | 2 | 3, number> = { 0: 0, 1: 0, 2: 0, 3: 0 };
+  for (const seg of segments) {
+    const hrs = ((seg.x2 - seg.x1) / GRID_WIDTH) * 24;
+    totals[seg.row] += hrs;
+  }
+  return totals;
+}
+
 export function buildConnectors(segments: Segment[]): Connector[] {
   const connectors: Connector[] = [];
   for (let i = 1; i < segments.length; i++) {

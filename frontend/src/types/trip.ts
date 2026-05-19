@@ -58,7 +58,6 @@ export interface TripSummary {
   total_miles: number;
   cycle_hours_used_after_trip: number;
   cycle_hours_remaining: number;
-  rest_stops: Array<{ day: number; location: string; city: string }>;
   rest_stop_steps: RestStopStep[];
   restart_required: boolean;
   message: string;
@@ -86,4 +85,6 @@ export interface LocationSuggestion {
   shortName: string;
   lat: number;
   lng: number;
+  /** ISO-2 country code — 'US' | 'CA'. Used to validate service area. */
+  countryCode?: string;
 }

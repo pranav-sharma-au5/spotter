@@ -1,22 +1,20 @@
 /// <reference types="vite/client" />
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useMemo } from 'react';
 import type { MapRef } from 'react-map-gl/maplibre';
 import Map, { NavigationControl } from 'react-map-gl/maplibre';
 // eslint-disable-next-line import/no-unresolved
 import 'maplibre-gl/dist/maplibre-gl.css';
 
-import { useTheme } from '../../hooks/useTheme';
 import { useMapBounds } from '../../hooks/useMapBounds';
 import { useActiveEvent } from '../../hooks/useActiveEvent';
 import { useTripStore } from '../../stores/tripStore';
 import { RouteLayer } from './RouteLayer';
 import { StopMarker } from './StopMarker';
 import { TruckMarker } from './TruckMarker';
-import { EVENT_CONFIG } from '../../config/eventConfig';
 import type { ScheduledStop } from '../../types/trip';
 
-const DARK_STYLE = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
-const LIGHT_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+const MAP_STYLE = 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json';
+const ROUTE_LINE_COLOUR = '#185FA5';
 
 interface RouteMapProps {
   mode: 'summary' | 'detail';
@@ -36,37 +34,29 @@ function boostNativeCityLabels(map: MapRef['getMap'] extends () => infer R ? R :
 
   for (const layer of style.layers) {
     if (layer.type !== 'symbol') continue;
-    // Carto Positron / Dark Matter use OpenMapTiles source-layer "place_label"
-    // and layer IDs that contain "place" and "city" / "town".
-    // Target only city-level layers; leave town/village/suburb alone to avoid clutter.
     const srcLayer = (layer as { 'source-layer'?: string })['source-layer'] ?? '';
     const id = layer.id;
     const isCity =
       (srcLayer === 'place_label' || srcLayer === 'place') &&
       (id.includes('city') || id.includes('capital') || id.includes('state'));
     if (isCity) {
-      // Show from z3 instead of the style's default (usually z6–z8).
       map.setLayerZoomRange(id, 3, 24);
     }
   }
 }
 
-export function RouteMap({ mode, onMarkerClick }: RouteMapProps) {
+export function RouteMap({ onMarkerClick }: RouteMapProps) {
   const mapRef = useRef<MapRef>(null);
-  const { theme } = useTheme();
   const { activeEventId, clearActiveEvent } = useActiveEvent();
   const plan = useTripStore((s) => s.plan);
-
-  // Derived early so it's available in onMapLoad closure.
-  const isDetail = mode === 'detail';
-
-  const mapStyle = theme === 'dark' ? DARK_STYLE : LIGHT_STYLE;
-  const lineColour = theme === 'dark' ? '#378ADD' : '#185FA5';
 
   const coordinates = plan?.route_geometry ?? [];
   const bounds = useMapBounds(coordinates);
 
-  const allEvents = plan?.days.flatMap((d) => d.events) ?? [];
+  const allEvents = useMemo(
+    () => plan?.days.flatMap((d) => d.events) ?? [],
+    [plan],
+  );
   const nonDriveEvents = allEvents.filter((e) => e.type !== 'drive');
 
   useEffect(() => {
@@ -99,16 +89,15 @@ export function RouteMap({ mode, onMarkerClick }: RouteMapProps) {
         duration: 800,
       });
     }
-  }, [activeEventId]);
+  }, [activeEventId, allEvents]);
 
   const onMapLoad = useCallback(() => {
     if (!mapRef.current) return;
     if (bounds) {
       mapRef.current.fitBounds(bounds, { padding: 40, duration: 0 });
     }
-    // Reveal city labels from the tile style at lower zoom levels in both modes.
     boostNativeCityLabels(mapRef.current.getMap());
-  }, [bounds, isDetail]);
+  }, [bounds]);
 
   if (!plan) {
     return <div className="flex-1 bg-bg-elevated" />;
@@ -129,17 +118,15 @@ export function RouteMap({ mode, onMarkerClick }: RouteMapProps) {
   return (
     <Map
       ref={mapRef}
-      mapStyle={mapStyle}
+      mapStyle={MAP_STYLE}
       interactive
       onLoad={onMapLoad}
       style={{ width: '100%', height: '100%' }}
     >
-      {/* Zoom +/− always visible; compass hidden to keep UI minimal */}
       <NavigationControl position="top-right" showCompass={false} />
 
-      <RouteLayer coordinates={coordinates} lineColour={lineColour} />
+      <RouteLayer coordinates={coordinates} lineColour={ROUTE_LINE_COLOUR} />
 
-      {/* Driver's starting position — always rendered on top of the route line */}
       {coordinates.length > 0 && (
         <TruckMarker lat={coordinates[0].lat} lng={coordinates[0].lng} />
       )}
@@ -154,32 +141,5 @@ export function RouteMap({ mode, onMarkerClick }: RouteMapProps) {
         />
       ))}
     </Map>
-  );
-}
-
-export function MapLegend() {
-  const plan = useTripStore((s) => s.plan);
-  if (!plan) return null;
-
-  const allEvents = plan.days.flatMap((d) => d.events);
-  const presentTypes = [...new Set(allEvents.map((e) => e.type))].filter(
-    (t) => t !== 'drive' && EVENT_CONFIG[t].showInLegend,
-  );
-
-  return (
-    <div className="absolute bottom-4 left-4 flex flex-wrap gap-2 rounded-xl border border-border-subtle bg-bg-surface/90 px-3 py-2 backdrop-blur-sm">
-      {presentTypes.map((type) => {
-        const cfg = EVENT_CONFIG[type];
-        return (
-          <div key={type} className="flex items-center gap-1.5">
-            <span
-              className="h-2 w-2 rounded-full"
-              style={{ backgroundColor: cfg.colour }}
-            />
-            <span className="text-[10px] text-text-secondary">{cfg.label}</span>
-          </div>
-        );
-      })}
-    </div>
   );
 }

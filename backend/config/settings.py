@@ -2,6 +2,7 @@
 import os
 from pathlib import Path
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -13,6 +14,12 @@ SECRET_KEY = os.environ.get(
 )
 
 DEBUG = os.environ.get("DEBUG", "True") == "True"
+
+if not DEBUG and SECRET_KEY.startswith("django-insecure"):
+    raise ImproperlyConfigured(
+        "SECRET_KEY must be set to a secure value in production. "
+        "Set the SECRET_KEY environment variable."
+    )
 
 ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
@@ -56,8 +63,8 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 
-# CORS — allow all origins in development
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOWED_ORIGINS = [] if DEBUG else os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
 
 # Django REST Framework
 REST_FRAMEWORK = {
@@ -72,9 +79,6 @@ REST_FRAMEWORK = {
 # External API credentials
 # ---------------------------------------------------------------------------
 MAPS_API_KEY: str = os.environ.get("MAPS_API_KEY", "")
-OVERPASS_API_URL: str = os.environ.get(
-    "OVERPASS_API_URL", "https://overpass-api.de/api/interpreter"
-)
 ORS_BASE_URL: str = os.environ.get("ORS_BASE_URL", "https://api.openrouteservice.org")
 
 # ---------------------------------------------------------------------------
