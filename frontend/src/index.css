@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Light mode tokens (default) ── */
+:root {
+  --bg-base:      #f4f5f7;
+  --bg-surface:   #ffffff;
+  --bg-elevated:  #f0f2f5;
+  --bg-highlight: #e8f1fb;
+
+  --border-subtle: #e2e4e9;
+  --border-medium: #c8ccd4;
+
+  --text-primary:   #111827;
+  --text-secondary: #6b7280;
+  --text-muted:     #9ca3af;
+  --text-hint:      #d1d5db;
+
+  --accent:      #185FA5;
+  --accent-dark: #0c447c;
+
+  /* Event colours: semantic, unchanged between modes */
+  --ev-drive:   #444444;
+  --ev-break:   #EF9F27;
+  --ev-fuel:    #639922;
+  --ev-rest:    #378ADD;
+  --ev-pickup:  #D85A30;
+  --ev-dropoff: #D4537E;
+  --ev-restart: #7F77DD;
+  --ev-start:   #111827;
+}
+
+/* ── Dark mode tokens ── */
+.dark {
+  --bg-base:      #0a0c10;
+  --bg-surface:   #0f1117;
+  --bg-elevated:  #141820;
+  --bg-highlight: #0d1825;
+
+  --border-subtle: #1e2128;
+  --border-medium: #2a2d35;
+
+  --text-primary:   #e0e0e0;
+  --text-secondary: #888888;
+  --text-muted:     #444444;
+  --text-hint:      #333333;
+
+  --accent:      #378ADD;
+  --accent-dark: #185FA5;
+
+  --ev-start:    #ffffff;
+}
+
+/* ── Global base ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  height: 100%;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+}
+
+/* ── MapLibre popup reset ── */
+.maplibregl-popup-content {
+  padding: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+.maplibregl-popup-tip {
+  display: none !important;
+}
