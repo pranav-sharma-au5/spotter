@@ -6,6 +6,7 @@ import { ELDModal } from '../eld/ELDModal';
 import { Button } from '../ui/Button';
 import { useActiveEvent } from '../../hooks/useActiveEvent';
 import { formatHours } from '../../utils/format';
+import { calcTotalMiles } from '../eld/eld-utils';
 import type { TripDay } from '../../types/trip';
 
 interface DayAccordionProps {
@@ -21,9 +22,7 @@ export function DayAccordion({ day, defaultOpen, from, to }: DayAccordionProps) 
   const [eldOpen, setEldOpen] = useState(false);
   const { activeEventId, setActiveEvent } = useActiveEvent();
 
-  const totalMiles = Math.round(
-    day.events.reduce((sum, e) => sum + e.miles_from_prev, 0),
-  );
+  const totalMiles = Math.round(calcTotalMiles(day));
 
   return (
     <>
