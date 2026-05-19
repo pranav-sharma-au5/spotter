@@ -21,7 +21,10 @@ if not DEBUG and SECRET_KEY.startswith("django-insecure"):
         "Set the SECRET_KEY environment variable."
     )
 
-ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+_default_hosts = "localhost,127.0.0.1"
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", _default_hosts).split(",")
+# Accept all *.vercel.app preview URLs automatically
+ALLOWED_HOSTS += [".vercel.app"]
 
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
@@ -64,7 +67,11 @@ USE_TZ = True
 STATIC_URL = "/static/"
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG
-CORS_ALLOWED_ORIGINS = [] if DEBUG else os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
+# In production the frontend is served from the same Vercel domain, so
+# same-origin requests are made and CORS is not needed. Set
+# CORS_ALLOWED_ORIGINS if you ever point a separate custom domain at the API.
+_cors_env = os.environ.get("CORS_ALLOWED_ORIGINS", "")
+CORS_ALLOWED_ORIGINS = [] if DEBUG else [o for o in _cors_env.split(",") if o]
 
 # Django REST Framework
 REST_FRAMEWORK = {
