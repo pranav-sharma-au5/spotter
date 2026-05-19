@@ -19,7 +19,7 @@ The dev server runs at `http://localhost:5173`. The backend API must be running 
 
 ## API Base URL
 
-All API requests target `http://localhost:8000`. Configure this in `src/services/` when building out the service layer.
+API requests use same-origin `/api/*` by default (proxied to `localhost:8000` in dev). For mobile testing on your LAN, open the Network URL Vite prints (e.g. `http://192.168.x.x:5173`) — do not set `VITE_API_URL` to `localhost`. See `.env.example`.
 
 ## Pages to Build
 
