@@ -1,11 +1,7 @@
 import type { TripDay } from '../../types/trip';
 import type { EldRow } from './eldRules';
-import { getEldRowForEvent, OFF_DUTY_ROW, DRIVING_ROW } from './eldRules';
-import {
-  getEldGridContext,
-  eventGridRange,
-  shouldStopProcessingEvents,
-} from './eldGridTransform';
+import { getEldRowForEvent, OFF_DUTY_ROW, DRIVING_ROW, shouldStopProcessingEvents } from './eldRules';
+import { getEldGridContext, eventGridRange } from './eldGridTransform';
 
 export type DutyIntervalKind = 'initial_gap' | 'gap' | 'event' | 'post_rest_drive';
 

@@ -4,7 +4,6 @@ import {
   gridOffsetForDutyStart,
   initialGapRow,
   clipToGrid,
-  shouldStopProcessingEvents,
 } from './eldRules';
 
 export interface EldGridContext {
@@ -66,5 +65,3 @@ export function eventGridRange(
     clippedEnd: clipped.end,
   };
 }
-
-export { shouldStopProcessingEvents };

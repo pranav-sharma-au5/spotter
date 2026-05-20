@@ -1,6 +1,7 @@
 import type { ScheduledStop, TripDay } from '../../types/trip';
 import { EVENT_CONFIG } from '../../config/eventConfig';
-import { getEldGridContext, eventGridRange, shouldStopProcessingEvents } from './eldGridTransform';
+import { shouldStopProcessingEvents } from './eldRules';
+import { getEldGridContext, eventGridRange } from './eldGridTransform';
 import type { EldGridContext } from './eldGridTransform';
 
 export function formatLogTime(gridHour: number): string {
