@@ -26,7 +26,7 @@ from __future__ import annotations
 import pytest
 
 from trip.domain.enums import ConstraintType, EventType
-from trip.services.hos_calculator import HOSCalculatorService, _REST_FUEL_CREDIT_MILES
+from trip.services.hos_calculator import HOSCalculatorService
 from tests.data.real_routes import REAL_ROUTES
 
 # ---------------------------------------------------------------------------
@@ -91,8 +91,8 @@ def _assert_fuel_intervals(all_events: list) -> None:
     """
     Verify no driving stretch between fuel stops exceeds 950 miles.
 
-    Mirrors HOSCalculatorService: overnight rest credits partial fueling;
-  34-hr restart fully resets the fuel counter.
+    Mirrors HOSCalculatorService: only explicit fuel stops (or combined
+    break+fuel) reset the counter; overnight rest does not count as fueling.
     """
     MAX_MILES = _MAX_FUEL_INTERVAL_MILES + _EPS
     miles_since_fuel = 0.0
@@ -105,8 +105,6 @@ def _assert_fuel_intervals(all_events: list) -> None:
             )
         elif ConstraintType.FUEL in event.satisfies or event.type == EventType.FUEL:
             miles_since_fuel = 0.0
-        elif event.type == EventType.REST:
-            miles_since_fuel = max(0.0, miles_since_fuel - _REST_FUEL_CREDIT_MILES)
         elif event.type == EventType.RESTART:
             miles_since_fuel = 0.0
 
@@ -384,9 +382,8 @@ def test_transcontinental_fuel_stops_spaced_correctly(make_geometry):
     all_events = [e for day in days for e in day.events]
     fuel_events = [e for e in all_events if ConstraintType.FUEL in e.satisfies]
 
-    # 2,015 miles with nightly rest may need only one explicit fuel stop
-    assert len(fuel_events) >= 1, (
-        f"Expected ≥ 1 fuel stop for a 2,015-mile trip, got {len(fuel_events)}"
+    assert len(fuel_events) >= 2, (
+        f"Expected ≥ 2 fuel stops for a 2,015-mile trip, got {len(fuel_events)}"
     )
 
     # Verify spacing between consecutive fuel events

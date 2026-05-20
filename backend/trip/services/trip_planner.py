@@ -16,6 +16,7 @@ from trip.domain.models import (
 )
 from trip.utils import coord_at_mile, cumulative_miles as compute_cumulative_miles
 
+from trip.exceptions import FacilityDataError
 from trip.services.facility import FacilityService
 from trip.services.geocoding import GeocodingService
 from trip.services.hos_calculator import HOSCalculatorService
@@ -150,11 +151,14 @@ class TripPlannerService:
 
         enriched = 0
         if enrichable:
+            self.facility_service.clear_poi_errors()
             workers = min(len(enrichable), _MAX_ENRICHMENT_WORKERS)
             with ThreadPoolExecutor(max_workers=workers) as pool:
                 future_to_event = {
                     pool.submit(
-                        self.facility_service.find_best_facility_in_segment, seg
+                        self.facility_service.find_best_facility_in_segment,
+                        seg,
+                        event.type,
                     ): event
                     for event, seg in enrichable
                 }
@@ -170,11 +174,30 @@ class TripPlannerService:
 
         _log.info("Enriched %d stops with facility data", enriched)
 
+        if enrichable and enriched == 0:
+            summary = self.facility_service.poi_error_summary()
+            if not isinstance(summary, str):
+                summary = ""
+            summary = summary.strip()
+            if summary:
+                _log.warning(
+                    "Facility enrichment failed for all %d stops: %s",
+                    len(enrichable),
+                    summary,
+                )
+                raise FacilityDataError(
+                    f"Could not load truck-stop data ({summary}). "
+                    "ORS POI quota may be exhausted — try again later or upgrade your API plan."
+                )
+
+        # Reverse-geocode rests and any stop still showing a category placeholder ("Fuel").
         city_events = [
             event
             for day in days
             for event in day.events
             if event.type in _NEEDS_CITY
+            or FacilityService.is_machine_display_name(event.location)
+            or FacilityService.is_generic_brand_name(event.location)
         ]
         if city_events:
             with ThreadPoolExecutor(max_workers=min(len(city_events), 5)) as pool:
@@ -191,6 +214,10 @@ class TripPlannerService:
                         if event.stop_info is None:
                             event.stop_info = StopInfo()
                         event.stop_info.city = city
+                        if FacilityService.is_machine_display_name(event.location):
+                            event.location = FacilityService.location_with_city(
+                                event.location, city, event.type
+                            )
 
         summary = self.summary_service.build(
             days=days,

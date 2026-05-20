@@ -16,9 +16,11 @@ interface DayAccordionProps {
   from: string;
   /** Route destination forwarded to the ELD log sheet */
   to: string;
+  /** Full trip — cumulative truck miles on each day's log */
+  allDays: TripDay[];
 }
 
-export function DayAccordion({ day, defaultOpen, from, to }: DayAccordionProps) {
+export function DayAccordion({ day, defaultOpen, from, to, allDays }: DayAccordionProps) {
   const [eldOpen, setEldOpen] = useState(false);
   const { activeEventId, setActiveEvent } = useActiveEvent();
 
@@ -75,6 +77,7 @@ export function DayAccordion({ day, defaultOpen, from, to }: DayAccordionProps) 
         from={from}
         to={to}
         dayIndex={day.day_number - 1}
+        allDays={allDays}
       />
     </>
   );

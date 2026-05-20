@@ -19,22 +19,32 @@ Record scores in `backend/verification_exports/SCORES.md`.
 """
 
 
+def _event_type_label(raw: Any) -> str:
+    if raw is None:
+        return "?"
+    text = str(raw)
+    if text.startswith("EventType."):
+        return text.split(".", 1)[-1].lower()
+    return text
+
+
 def build_event_timeline(plan: dict[str, Any]) -> str:
     lines: list[str] = []
     for day in plan.get("days", []):
         day_num = day.get("day_number", "?")
         for event in day.get("events", []):
-            if event.get("type") == "drive":
+            if _event_type_label(event.get("type")) == "drive":
                 continue
             loc = event.get("location", "")
             lines.append(
-                f"- Day {day_num}: **{event.get('type')}** — {event.get('label')} "
+                f"- Day {day_num}: **{_event_type_label(event.get('type'))}** — "
+                f"{event.get('label')} "
                 f"({event.get('duration_hrs')}h, +{event.get('miles_from_prev', 0):.0f} mi) @ {loc}"
             )
         drive_mi = sum(
             e.get("miles_from_prev", 0)
             for e in day.get("events", [])
-            if e.get("type") == "drive"
+            if _event_type_label(e.get("type")) == "drive"
         )
         lines.append(
             f"- Day {day_num}: driving **{day.get('total_driving_hrs', 0):.1f}h** "

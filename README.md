@@ -83,7 +83,7 @@ Implements FMCSA 60/70-hour rules:
 | Driving hours | 11 hrs/day | Overnight rest (10 hrs off) |
 | Duty window | 14 hrs/day | Overnight rest |
 | Consecutive driving | 8 hrs | Mandatory 30-min break |
-| Fuel | 950 miles | Fuel stop |
+| Fuel | 950 miles | Explicit fuel stop (overnight rest does not count as fueling) |
 | Weekly cycle | 70 hrs | 34-hr restart |
 
 The simulator runs a forward pass over the route, placing stops at natural HOS deadline miles. Stop coordinates are **interpolated directly from the route geometry** rather than being sourced from POI data — this guarantees every stop has a real lat/lng on the road even before enrichment, eliminating the `0.0, 0.0` placeholder problem.
@@ -175,6 +175,12 @@ Open the Dashboard → **Verification routes** → pick a corridor → use the c
 
 ```bash
 python manage.py seed_verification_plans --force --export-md
+```
+
+Seed one corridor only (faster; fewer ORS POI calls):
+
+```bash
+python manage.py seed_verification_plans --slug seattle_miami --force --export-md
 ```
 
 ### Automated HOS tests (no ORS)

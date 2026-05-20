@@ -51,6 +51,7 @@ def _build_planner(total_miles=400.0, pickup_miles=100.0, geometry=None):
 
     mock_facility = MagicMock(spec=FacilityService)
     mock_facility.find_best_facility_in_segment.return_value = None
+    mock_facility.poi_error_summary.return_value = ""
 
     return TripPlannerService(
         geocoding_service=mock_geocoding,

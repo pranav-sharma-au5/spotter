@@ -57,6 +57,7 @@ def _build_planner(total_miles=400.0, pickup_miles=100.0, geometry=None):
     # Return None for every per-stop query — enrichment is skipped, stops use
     # interpolated coordinates from the route geometry instead.
     mock_facility.find_best_facility_in_segment.return_value = None
+    mock_facility.poi_error_summary.return_value = ""
 
     calculator = HOSCalculatorService()
     summary_service = SummaryService()
@@ -134,6 +135,7 @@ def test_plan_without_facility_enrichment(sample_route_geometry):
 
     mock_facility = MagicMock(spec=FacilityService)
     mock_facility.find_best_facility_in_segment.return_value = None
+    mock_facility.poi_error_summary.return_value = ""
 
     planner = TripPlannerService(
         geocoding_service=mock_geocoding,

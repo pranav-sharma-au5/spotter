@@ -13,8 +13,6 @@ _log = logging.getLogger(__name__)
 # If a mandatory break falls within this many miles after a fuel deadline, merge
 # into one Break + Fuel stop (avoids fuel-then-break 10 mi later after a long leg).
 _BREAK_FUEL_COMBINE_MILES = 55.0
-# Miles credited toward tank during a 10-hr rest (top-off at truck stop).
-_REST_FUEL_CREDIT_MILES = 400.0
 
 
 class HOSCalculatorService:
@@ -178,11 +176,7 @@ class HOSCalculatorService:
 
             if is_rest_type:
                 drive_hrs_since_break = 0.0
-                if event_type == EventType.REST:
-                    miles_since_fuel = max(
-                        0.0, miles_since_fuel - _REST_FUEL_CREDIT_MILES
-                    )
-                elif event_type == EventType.RESTART:
+                if event_type == EventType.RESTART:
                     miles_since_fuel = 0.0
                 drive_hrs_today = 0.0
                 duty_hrs_today = 0.0

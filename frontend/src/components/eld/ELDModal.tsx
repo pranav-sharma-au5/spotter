@@ -41,9 +41,11 @@ export interface ELDModalProps {
   /** Route destination — displayed in the log sheet "To" field */
   to: string;
   dayIndex: number;
+  /** All trip days — cumulative truck miles on the log */
+  allDays?: TripDay[];
 }
 
-export function ELDModal({ open, onClose, day, from, to, dayIndex }: ELDModalProps) {
+export function ELDModal({ open, onClose, day, from, to, dayIndex, allDays }: ELDModalProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -192,7 +194,7 @@ export function ELDModal({ open, onClose, day, from, to, dayIndex }: ELDModalPro
           ref={scrollRef}
           className="min-h-0 flex-1 overflow-auto px-4 py-2 md:px-6"
         >
-          <ELDLogSheet day={day} from={from} to={to} dayIndex={dayIndex} />
+          <ELDLogSheet day={day} from={from} to={to} dayIndex={dayIndex} allDays={allDays} />
         </div>
 
         <DialogFooter className="max-md:shrink-0 max-md:gap-2 max-md:px-4 max-md:py-3">

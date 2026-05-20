@@ -124,8 +124,10 @@ def test_no_micro_break_immediately_after_fuel(calculator, make_geometry):
             )
 
 
-def test_fuel_not_forced_immediately_after_overnight_rest(calculator, make_geometry):
-    """Fuel counter resets on rest — no ~85 mi fuel stop at the start of a duty day."""
+def test_overnight_rest_does_not_waive_fuel_requirement(calculator, make_geometry):
+    """Rest is not a fuel stop — long trips still need explicit fuel every ≤950 mi."""
+    from trip.domain.enums import ConstraintType
+
     geo, cum = make_geometry(3_300.0)
     days = calculator.calculate(
         total_distance_miles=3_300.0,
@@ -134,22 +136,20 @@ def test_fuel_not_forced_immediately_after_overnight_rest(calculator, make_geome
         geometry=geo,
         cumulative_miles=cum,
     )
+    all_events = [e for day in days for e in day.events]
+    fuel_stops = [
+        e for e in all_events
+        if e.type == EventType.FUEL or ConstraintType.FUEL in e.satisfies
+    ]
+    assert len(fuel_stops) >= 3
 
-    for day in days[1:]:
-        stops = [
-            e for e in day.events
-            if e.type not in (
-                EventType.DRIVE,
-                EventType.REST,
-                EventType.RESTART,
-                EventType.PICKUP,
-            )
-        ]
-        if stops and stops[0].type == EventType.FUEL:
-            assert stops[0].miles_from_prev >= 200, (
-                f"Day {day.day_number}: fuel only {stops[0].miles_from_prev:.0f} mi "
-                "into the day — likely stale fuel counter across rest"
-            )
+    miles_since_fuel = 0.0
+    for event in all_events:
+        if event.type == EventType.DRIVE:
+            miles_since_fuel += event.miles_from_prev
+            assert miles_since_fuel <= 950.5
+        elif event.type == EventType.FUEL or ConstraintType.FUEL in event.satisfies:
+            miles_since_fuel = 0.0
 
 
 def test_cycle_hours_limit_requires_restart(calculator, make_geometry):

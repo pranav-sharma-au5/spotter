@@ -18,6 +18,7 @@ from trip.domain.models import (
     TripRequest,
 )
 from trip.exceptions import (
+    FacilityDataError,
     GeocodingError,
     InsufficientCycleHoursError,
     RouteNotFoundError,
@@ -90,6 +91,11 @@ def _handle_planning_errors(fn: Callable[[], T]) -> T | Response:
         return Response(
             {"error": "insufficient_hours", "detail": str(exc)},
             status=422,
+        )
+    except FacilityDataError as exc:
+        return Response(
+            {"error": "facility_data_unavailable", "detail": str(exc)},
+            status=503,
         )
     except Exception:  # noqa: BLE001
         _log.exception("Unhandled error in trip planning view")

@@ -9,7 +9,12 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from trip.domain.models import TripRequest
-from trip.exceptions import GeocodingError, InsufficientCycleHoursError, RouteNotFoundError
+from trip.exceptions import (
+    FacilityDataError,
+    GeocodingError,
+    InsufficientCycleHoursError,
+    RouteNotFoundError,
+)
 from trip.models import SavedTripPlan, VerificationRoute
 from trip.verification_data import VERIFICATION_ROUTE_DEFS
 from trip.verification_export import build_markdown
@@ -36,6 +41,13 @@ class Command(BaseCommand):
             default="",
             metavar="PATH",
             help="Load plan JSON from fixture file instead of calling ORS.",
+        )
+        parser.add_argument(
+            "--slug",
+            action="append",
+            dest="slugs",
+            metavar="SLUG",
+            help="Only seed these route slugs (repeatable). Default: all routes.",
         )
 
     def handle(self, *args, **options) -> None:
@@ -70,7 +82,18 @@ class Command(BaseCommand):
         planner = _build_planner() if not fixture_path else None
         rows: list[str] = []
 
-        for route_def in VERIFICATION_ROUTE_DEFS:
+        route_defs = VERIFICATION_ROUTE_DEFS
+        if options["slugs"]:
+            slug_set = set(options["slugs"])
+            route_defs = [r for r in route_defs if r["slug"] in slug_set]
+            unknown = slug_set - {r["slug"] for r in route_defs}
+            if unknown:
+                known = ", ".join(r["slug"] for r in VERIFICATION_ROUTE_DEFS)
+                raise CommandError(
+                    f"Unknown slug(s): {', '.join(sorted(unknown))}. Known: {known}"
+                )
+
+        for route_def in route_defs:
             route, _ = VerificationRoute.objects.update_or_create(
                 slug=route_def["slug"],
                 defaults={
@@ -134,9 +157,9 @@ class Command(BaseCommand):
                     route_result, schedule, trip_request.cycle_used_hrs
                 )
                 saved.plan_json = {
-                    "request": trip_request.model_dump(),
-                    "plan": plan.model_dump(),
-                    "route": route_result.model_dump(),
+                    "request": trip_request.model_dump(mode="json"),
+                    "plan": plan.model_dump(mode="json"),
+                    "route": route_result.model_dump(mode="json"),
                 }
                 saved.ors_miles = route_result.total_distance_miles
                 saved.status = SavedTripPlan.Status.OK
@@ -144,7 +167,12 @@ class Command(BaseCommand):
                 saved.computed_at = timezone.now()
                 saved.save()
                 self.stdout.write(self.style.SUCCESS(f"  ok {route.slug}"))
-            except (GeocodingError, RouteNotFoundError, InsufficientCycleHoursError) as exc:
+            except (
+                GeocodingError,
+                RouteNotFoundError,
+                InsufficientCycleHoursError,
+                FacilityDataError,
+            ) as exc:
                 saved.status = SavedTripPlan.Status.FAILED
                 saved.error_message = str(exc)
                 saved.computed_at = timezone.now()

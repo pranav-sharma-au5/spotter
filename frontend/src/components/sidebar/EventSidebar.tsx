@@ -40,6 +40,7 @@ export function EventSidebar({
             defaultOpen={idx === 0}
             from={request.current_location}
             to={request.dropoff_location}
+            allDays={plan.days}
           />
         ))}
       </div>
