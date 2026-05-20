@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { Topbar } from '../components/layout/Topbar';
 import { RouteSpine } from '../components/input/RouteSpine';
 import { CycleGauge } from '../components/input/CycleGauge';
 import { Button } from '../components/ui/Button';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { Eyebrow } from '../components/ui/Eyebrow';
-import { useTripPlan } from '../hooks/useTripPlan';
+import { useTripPlanProgressive } from '../hooks/useTripPlanProgressive';
+import { PlanningProgress } from '../components/input/PlanningProgress';
 import { useTripStore } from '../stores/tripStore';
 import type { RouteField, RouteValues } from '../components/input/RouteSpine';
 import type { LocationSuggestion } from '../types/trip';
@@ -85,7 +86,7 @@ export function PlanInput() {
   });
 
   const [cycleHrs, setCycleHrs] = useState(storedRequest?.cycle_used_hrs ?? 0);
-  const { submitTrip, isPending, errorMessage } = useTripPlan();
+  const { submitTrip, isPending, errorMessage, planStep } = useTripPlanProgressive();
 
   const canSubmit = selections.current && selections.pickup && selections.dropoff;
 
@@ -111,6 +112,19 @@ export function PlanInput() {
     // Keep route text in sync with the confirmed shortName
     setRoute((prev) => ({ ...prev, [field]: suggestion.shortName }));
     setSelections((prev) => ({ ...prev, [field]: true }));
+  };
+
+  const handleSwapPickupDropoff = () => {
+    setRoute((prev) => ({
+      ...prev,
+      pickup: prev.dropoff,
+      dropoff: prev.pickup,
+    }));
+    setSelections((prev) => ({
+      ...prev,
+      pickup: prev.dropoff,
+      dropoff: prev.pickup,
+    }));
   };
 
   const handleSubmit = () => {
@@ -147,6 +161,7 @@ export function PlanInput() {
               values={route}
               onChange={handleChange}
               onSelect={handleSelect}
+              onSwapPickupDropoff={handleSwapPickupDropoff}
             />
           </div>
 
@@ -168,10 +183,9 @@ export function PlanInput() {
               className="flex h-12 w-full flex-col items-center justify-center py-0"
             >
               {isPending ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Planning your route...
-                </span>
+                <div className="flex flex-col items-center gap-3 py-1">
+                  <PlanningProgress planStep={planStep === 'idle' ? 'routing' : planStep} compact />
+                </div>
               ) : (
                 <>
                   <span>Plan my trip</span>

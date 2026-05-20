@@ -14,7 +14,7 @@ export interface TripSummaryData {
  */
 export function useTripSummaryData(): TripSummaryData | null {
   const plan = useTripStore((s) => s.plan);
-  if (!plan) return null;
+  if (!plan || plan.days.length === 0) return null;
 
   const { days } = plan;
   const lastDay = days[days.length - 1];

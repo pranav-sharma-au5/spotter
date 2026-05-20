@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { ArrowUpDown } from 'lucide-react';
 import { LocationAutocomplete } from './LocationAutocomplete';
 import { GPSButton } from './GPSButton';
+import { PopularRouteSuggestions } from './PopularRouteSuggestions';
 import type { LocationSuggestion } from '../../types/trip';
 
 export type RouteField = 'current' | 'pickup' | 'dropoff';
@@ -15,6 +17,7 @@ export interface RouteSpineProps {
   values: RouteValues;
   onChange: (field: RouteField, value: string) => void;
   onSelect: (field: RouteField, suggestion: LocationSuggestion) => void;
+  onSwapPickupDropoff: () => void;
 }
 
 interface SpineDotProps {
@@ -51,7 +54,25 @@ function SpineDot({ dotColour, dotSize = 10, showConnector = true, children }: S
   );
 }
 
-export function RouteSpine({ values, onChange, onSelect }: RouteSpineProps) {
+function SwapPickupDropoffButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label="Swap pickup and dropoff"
+      className={[
+        'absolute right-3 top-1/2 z-10 -translate-y-1/2',
+        'rounded-full border border-border-medium bg-bg-surface p-2',
+        'text-text-secondary shadow-sm transition-colors',
+        'hover:bg-bg-elevated hover:text-text-primary',
+      ].join(' ')}
+    >
+      <ArrowUpDown className="h-4 w-4" aria-hidden="true" />
+    </button>
+  );
+}
+
+export function RouteSpine({ values, onChange, onSelect, onSwapPickupDropoff }: RouteSpineProps) {
   // GPS can only resolve the "current location" field.
   // If it resolves to a location outside US/Canada we surface the error here
   // and clear it the moment the user starts typing again.
@@ -73,6 +94,8 @@ export function RouteSpine({ values, onChange, onSelect }: RouteSpineProps) {
     onChange('current', v);
   };
 
+  const showPopularRoutes = !values.pickup && !values.dropoff;
+
   return (
     <div className="divide-y divide-border-subtle">
       {/* ── Current location ── */}
@@ -86,6 +109,7 @@ export function RouteSpine({ values, onChange, onSelect }: RouteSpineProps) {
           error={gpsError ?? undefined}
           rightSlot={
             <GPSButton
+              hasLocation={!!values.current}
               onResolved={handleGPSResolved}
               onError={handleGPSError}
             />
@@ -93,27 +117,47 @@ export function RouteSpine({ values, onChange, onSelect }: RouteSpineProps) {
         />
       </SpineDot>
 
-      {/* ── Pickup ── */}
-      <SpineDot dotColour="#D85A30" showConnector>
-        <LocationAutocomplete
-          label="PICKUP LOCATION"
-          placeholder="Where are you picking up?"
-          value={values.pickup}
-          onChange={(v) => onChange('pickup', v)}
-          onSelect={(s) => onSelect('pickup', s)}
-        />
-      </SpineDot>
+      {/* ── Pickup + Dropoff (swap floats between) ── */}
+      <div className="relative divide-y divide-border-subtle">
+        <SpineDot dotColour="#D85A30" showConnector>
+          <div className="pr-11">
+            <LocationAutocomplete
+              label="PICKUP LOCATION"
+              placeholder="Where are you picking up?"
+              value={values.pickup}
+              onChange={(v) => onChange('pickup', v)}
+              onSelect={(s) => onSelect('pickup', s)}
+            />
+          </div>
+        </SpineDot>
 
-      {/* ── Dropoff ── */}
-      <SpineDot dotColour="#D4537E" showConnector={false}>
-        <LocationAutocomplete
-          label="DROPOFF LOCATION"
-          placeholder="Final destination"
-          value={values.dropoff}
-          onChange={(v) => onChange('dropoff', v)}
-          onSelect={(s) => onSelect('dropoff', s)}
+        <SpineDot dotColour="#D4537E" showConnector={false}>
+          <div className="pr-11">
+            <LocationAutocomplete
+              label="DROPOFF LOCATION"
+              placeholder="Final destination"
+              value={values.dropoff}
+              onChange={(v) => onChange('dropoff', v)}
+              onSelect={(s) => onSelect('dropoff', s)}
+            />
+          </div>
+        </SpineDot>
+
+        <SwapPickupDropoffButton onClick={onSwapPickupDropoff} />
+      </div>
+
+      {showPopularRoutes && (
+        <PopularRouteSuggestions
+          onSelectPickup={(s) => {
+            onChange('pickup', s.shortName);
+            onSelect('pickup', s);
+          }}
+          onSelectDropoff={(s) => {
+            onChange('dropoff', s.shortName);
+            onSelect('dropoff', s);
+          }}
         />
-      </SpineDot>
+      )}
     </div>
   );
 }

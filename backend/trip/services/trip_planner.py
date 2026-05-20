@@ -5,7 +5,15 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from trip.domain.enums import EventType
-from trip.domain.models import Coordinate, StopInfo, TripPlan, TripRequest
+from trip.domain.models import (
+    Coordinate,
+    RouteCoordinates,
+    RoutePlanResult,
+    ScheduleResult,
+    StopInfo,
+    TripPlan,
+    TripRequest,
+)
 from trip.utils import coord_at_mile, cumulative_miles as compute_cumulative_miles
 
 from trip.services.facility import FacilityService
@@ -53,55 +61,80 @@ class TripPlannerService:
         self.summary_service = summary_service
 
     def plan(self, request: TripRequest) -> TripPlan:
-        """
-        Produce a full HOS-compliant trip plan for the given TripRequest.
+        """Produce a full HOS-compliant trip plan (monolithic entry point)."""
+        route = self.resolve_route(request)
+        schedule = self.build_schedule(route, request.cycle_used_hrs)
+        return self.enrich_and_summarize(route, schedule, request.cycle_used_hrs)
 
-        Flow
-        ----
-        1. Geocode the three addresses          (3 ORS calls)
-        2. Fetch the driving route              (1 ORS call)
-        3. Run HOS simulation — pure Python, no external calls
-        4. Enrich each stop with a targeted POI segment-query, fired
-           concurrently (max 5 workers)        (~N parallel ORS calls)
-        5. Reverse-geocode overnight rest/restart locations for city names
-        6. Build summary
+    def resolve_route(self, request: TripRequest) -> RoutePlanResult:
+        """
+        Geocode three addresses (parallel) and fetch the driving route.
 
         Raises:
             GeocodingError: if any address cannot be resolved.
             RouteNotFoundError: if no driving route exists.
+        """
+        locations = [
+            ("current", request.current_location),
+            ("pickup", request.pickup_location),
+            ("dropoff", request.dropoff_location),
+        ]
+        coords: dict[str, Coordinate] = {}
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            future_to_name = {
+                pool.submit(self.geocoding_service.geocode, loc): name
+                for name, loc in locations
+            }
+            for future in as_completed(future_to_name):
+                name = future_to_name[future]
+                coords[name] = future.result()
+
+        route = self.routing_service.get_route(
+            [coords["current"], coords["pickup"], coords["dropoff"]]
+        )
+
+        return RoutePlanResult(
+            route_geometry=route.geometry,
+            total_distance_miles=route.total_distance_miles,
+            pickup_distance_miles=route.segments[0].distance_miles,
+            coordinates=RouteCoordinates(
+                current=coords["current"],
+                pickup=coords["pickup"],
+                dropoff=coords["dropoff"],
+            ),
+        )
+
+    def build_schedule(
+        self,
+        route: RoutePlanResult,
+        cycle_used_hrs: float,
+    ) -> ScheduleResult:
+        """
+        Run HOS simulation — pure Python, no external calls.
+
+        Raises:
             InsufficientCycleHoursError: if cycle hours are exhausted.
         """
-        # 1. Geocode all three locations
-        current_coord = self.geocoding_service.geocode(request.current_location)
-        pickup_coord = self.geocoding_service.geocode(request.pickup_location)
-        dropoff_coord = self.geocoding_service.geocode(request.dropoff_location)
-
-        # 2. Route: current → pickup → dropoff
-        route = self.routing_service.get_route(
-            [current_coord, pickup_coord, dropoff_coord]
-        )
-        pickup_distance_miles = route.segments[0].distance_miles
-
-        # Pre-compute cumulative miles once — shared by HOS sim and enrichment
-        cum_miles = compute_cumulative_miles(route.geometry)
-
-        # 3. HOS simulation (no facility data needed)
+        cum_miles = compute_cumulative_miles(route.route_geometry)
         days = self.hos_calculator.calculate(
             total_distance_miles=route.total_distance_miles,
-            pickup_distance_miles=pickup_distance_miles,
-            cycle_used_hrs=request.cycle_used_hrs,
-            geometry=route.geometry,
+            pickup_distance_miles=route.pickup_distance_miles,
+            cycle_used_hrs=cycle_used_hrs,
+            geometry=route.route_geometry,
             cumulative_miles=cum_miles,
         )
+        return ScheduleResult(days=days)
 
-        # 4. Build enrichable (event, segment) pairs upfront, then fan out
-        #    all ORS POI calls concurrently.
-        #
-        #    Buffers are sized conservatively:
-        #      FUEL    100 mi  — functional safety: never run dry
-        #      REST    55 mi   — 1 hr of driving before the 11-hr limit
-        #      RESTART 55 mi   — same logic for cycle-reset stops
-        #      BREAK   45 mi   — ~50 min before the 8-hr drive limit
+    def enrich_and_summarize(
+        self,
+        route: RoutePlanResult,
+        schedule: ScheduleResult,
+        cycle_used_hrs: float,
+    ) -> TripPlan:
+        """Enrich stops with POI data, reverse-geocode rests, and build summary."""
+        days = schedule.days
+        cum_miles = compute_cumulative_miles(route.route_geometry)
+
         enrichable = []
         for day in days:
             for event in day.events:
@@ -111,7 +144,7 @@ class TripPlannerService:
                 deadline_mile = event.miles_from_start
                 start_mile = max(0.0, deadline_mile - buffer)
                 segment = self._geometry_segment(
-                    route.geometry, cum_miles, start_mile, deadline_mile
+                    route.route_geometry, cum_miles, start_mile, deadline_mile
                 )
                 enrichable.append((event, segment))
 
@@ -127,7 +160,7 @@ class TripPlannerService:
                 }
                 for future in as_completed(future_to_event):
                     event = future_to_event[future]
-                    facility = future.result()  # always returns Facility | None
+                    facility = future.result()
                     if facility:
                         event.location = facility.name
                         event.lat = facility.lat
@@ -137,29 +170,38 @@ class TripPlannerService:
 
         _log.info("Enriched %d stops with facility data", enriched)
 
-        # 5. Reverse-geocode overnight rests so the summary can show the city.
-        #    Done after enrichment so we use the final (possibly updated) coordinates.
-        for day in days:
-            for event in day.events:
-                if event.type not in _NEEDS_CITY:
-                    continue
-                city = self.geocoding_service.reverse_geocode(event.lat, event.lng)
-                if city:
-                    if event.stop_info is None:
-                        event.stop_info = StopInfo()
-                    event.stop_info.city = city
+        city_events = [
+            event
+            for day in days
+            for event in day.events
+            if event.type in _NEEDS_CITY
+        ]
+        if city_events:
+            with ThreadPoolExecutor(max_workers=min(len(city_events), 5)) as pool:
+                future_to_event = {
+                    pool.submit(
+                        self.geocoding_service.reverse_geocode, event.lat, event.lng
+                    ): event
+                    for event in city_events
+                }
+                for future in as_completed(future_to_event):
+                    event = future_to_event[future]
+                    city = future.result()
+                    if city:
+                        if event.stop_info is None:
+                            event.stop_info = StopInfo()
+                        event.stop_info.city = city
 
-        # 6. Build summary
         summary = self.summary_service.build(
             days=days,
             total_miles=route.total_distance_miles,
-            initial_cycle_hrs=request.cycle_used_hrs,
+            initial_cycle_hrs=cycle_used_hrs,
             max_cycle_hrs=self.hos_calculator.max_cycle_hrs,
         )
 
         return TripPlan(
             summary=summary,
-            route_geometry=route.geometry,
+            route_geometry=route.route_geometry,
             days=days,
         )
 
@@ -182,12 +224,10 @@ class TripPlannerService:
                 break
             points.append(geometry[i])
 
-        # Prepend interpolated start point
         if not points or cum_miles[0] < start_mile:
             lat, lng = coord_at_mile(geometry, cum_miles, start_mile)
             points.insert(0, Coordinate(lat=lat, lng=lng))
 
-        # Append interpolated end point
         lat, lng = coord_at_mile(geometry, cum_miles, end_mile)
         end_coord = Coordinate(lat=lat, lng=lng)
         if not points or (points[-1].lat != end_coord.lat or points[-1].lng != end_coord.lng):

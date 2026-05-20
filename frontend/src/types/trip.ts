@@ -64,16 +64,80 @@ export interface TripSummary {
 }
 
 export interface TripPlan {
-  summary: TripSummary;
+  summary?: TripSummary;
   route_geometry: Coordinate[];
   days: TripDay[];
 }
+
+export interface RouteCoordinates {
+  current: Coordinate;
+  pickup: Coordinate;
+  dropoff: Coordinate;
+}
+
+export interface RoutePlanResult {
+  route_geometry: Coordinate[];
+  total_distance_miles: number;
+  pickup_distance_miles: number;
+  coordinates: RouteCoordinates;
+}
+
+export interface ScheduleResult {
+  days: TripDay[];
+}
+
+export interface EnrichedPlanResult {
+  summary: TripSummary;
+  days: TripDay[];
+}
+
+export type PlanStep = 'idle' | 'routing' | 'scheduling' | 'enriching' | 'done' | 'error';
 
 export interface TripRequest {
   current_location: string;
   pickup_location: string;
   dropoff_location: string;
   cycle_used_hrs: number;
+}
+
+export interface VerificationRouteSummary {
+  slug: string;
+  name: string;
+  current_location: string;
+  pickup_location: string;
+  dropoff_location: string;
+  expected_miles: number;
+  expected_min_days: number;
+  expected_max_days: number;
+  status: 'ok' | 'failed' | 'pending' | 'not_seeded';
+  ors_miles: number | null;
+  total_days: number | null;
+  computed_at: string | null;
+  error_message: string;
+}
+
+export interface VerificationRouteMeta {
+  slug: string;
+  name: string;
+  current_location: string;
+  pickup_location: string;
+  dropoff_location: string;
+  expected_miles: number;
+  expected_min_days: number;
+  expected_max_days: number;
+  cycle_used_hrs: number;
+  notes: string;
+}
+
+export interface VerificationRouteDetail {
+  route: VerificationRouteMeta;
+  status: 'ok' | 'failed' | 'pending' | 'not_seeded';
+  request: TripRequest | null;
+  plan: TripPlan | null;
+  route_result: RoutePlanResult | null;
+  ors_miles: number | null;
+  computed_at: string | null;
+  error_message: string;
 }
 
 export interface LocationSuggestion {

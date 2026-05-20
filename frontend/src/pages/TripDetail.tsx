@@ -25,6 +25,8 @@ export function TripDetail() {
   useEffect(() => {
     if (!plan) {
       navigate('/');
+    } else if (!plan.days.length) {
+      navigate('/summary');
     }
   }, [plan, navigate]);
 
@@ -44,7 +46,7 @@ export function TripDetail() {
     }
   };
 
-  if (!plan) {
+  if (!plan?.days.length) {
     return null;
   }
 

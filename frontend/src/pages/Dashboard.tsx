@@ -3,6 +3,7 @@ import { Route, Clock, FileCheck } from 'lucide-react';
 import { Topbar } from '../components/layout/Topbar';
 import { Button } from '../components/ui/Button';
 import { Eyebrow } from '../components/ui/Eyebrow';
+import { VerificationRouteList } from '../components/verification/VerificationRouteList';
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -107,6 +108,8 @@ export function Dashboard() {
               badge="Coming soon"
             />
           </div>
+
+          <VerificationRouteList />
 
           <div className="mt-10 flex justify-stretch sm:justify-end">
             <Button variant="primary" className="w-full py-2.5 sm:w-auto" onClick={() => navigate('/plan')}>

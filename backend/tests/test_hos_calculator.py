@@ -101,6 +101,57 @@ def test_break_combined_with_fuel_stop(make_geometry):
     )
 
 
+def test_no_micro_break_immediately_after_fuel(calculator, make_geometry):
+    """After a long drive leg to fuel, a separate 10-mile break must not follow."""
+    geo, cum = make_geometry(3_300.0)
+    days = calculator.calculate(
+        total_distance_miles=3_300.0,
+        pickup_distance_miles=825.0,
+        cycle_used_hrs=0.0,
+        geometry=geo,
+        cumulative_miles=cum,
+    )
+
+    all_events = [e for day in days for e in day.events]
+    for i, event in enumerate(all_events):
+        if event.type != EventType.FUEL or i + 1 >= len(all_events):
+            continue
+        nxt = all_events[i + 1]
+        if nxt.type == EventType.BREAK and nxt.miles_from_prev < 50:
+            pytest.fail(
+                f"Break only {nxt.miles_from_prev:.0f} mi after fuel — "
+                "should be combined Break + Fuel"
+            )
+
+
+def test_fuel_not_forced_immediately_after_overnight_rest(calculator, make_geometry):
+    """Fuel counter resets on rest — no ~85 mi fuel stop at the start of a duty day."""
+    geo, cum = make_geometry(3_300.0)
+    days = calculator.calculate(
+        total_distance_miles=3_300.0,
+        pickup_distance_miles=825.0,
+        cycle_used_hrs=0.0,
+        geometry=geo,
+        cumulative_miles=cum,
+    )
+
+    for day in days[1:]:
+        stops = [
+            e for e in day.events
+            if e.type not in (
+                EventType.DRIVE,
+                EventType.REST,
+                EventType.RESTART,
+                EventType.PICKUP,
+            )
+        ]
+        if stops and stops[0].type == EventType.FUEL:
+            assert stops[0].miles_from_prev >= 200, (
+                f"Day {day.day_number}: fuel only {stops[0].miles_from_prev:.0f} mi "
+                "into the day — likely stale fuel counter across rest"
+            )
+
+
 def test_cycle_hours_limit_requires_restart(calculator, make_geometry):
     """A driver with 65 cycle hours on a long trip should get a 34-hr restart."""
     geo, cum = make_geometry(900.0)

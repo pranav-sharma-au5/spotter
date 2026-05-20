@@ -1,14 +1,23 @@
 """DRF views for the trip planning API."""
 import logging
+from typing import Callable, TypeVar
 
 from django.conf import settings
+from pydantic import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from trip.domain.models import TripRequest
+from trip.domain.models import (
+    EnrichRequest,
+    EnrichedPlanResult,
+    RouteCoordinates,
+    RoutePlanResult,
+    ScheduleRequest,
+    ScheduleResult,
+    TripRequest,
+)
 from trip.exceptions import (
-    FacilityDataError,
     GeocodingError,
     InsufficientCycleHoursError,
     RouteNotFoundError,
@@ -23,6 +32,8 @@ from trip.services.summary import SummaryService
 from trip.services.trip_planner import TripPlannerService
 
 _log = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 
 def _build_planner() -> TripPlannerService:
@@ -61,6 +72,44 @@ def _build_planner() -> TripPlannerService:
 _planner: TripPlannerService = _build_planner()
 
 
+def _handle_planning_errors(fn: Callable[[], T]) -> T | Response:
+    """Map domain exceptions to structured JSON error responses."""
+    try:
+        return fn()
+    except GeocodingError as exc:
+        return Response(
+            {"error": "location_not_found", "detail": str(exc)},
+            status=400,
+        )
+    except RouteNotFoundError as exc:
+        return Response(
+            {"error": "route_not_found", "detail": str(exc)},
+            status=400,
+        )
+    except InsufficientCycleHoursError as exc:
+        return Response(
+            {"error": "insufficient_hours", "detail": str(exc)},
+            status=422,
+        )
+    except Exception:  # noqa: BLE001
+        _log.exception("Unhandled error in trip planning view")
+        return Response(
+            {"error": "internal_error", "detail": "An unexpected error occurred."},
+            status=500,
+        )
+
+
+def _parse_body(model_cls: type, data: object) -> object | Response:
+    """Validate request body with pydantic; return model or error Response."""
+    try:
+        return model_cls.model_validate(data)
+    except ValidationError as exc:
+        return Response(
+            {"error": "invalid_request", "detail": exc.errors()},
+            status=400,
+        )
+
+
 class TripPlanView(APIView):
     """POST /api/v1/trip/plan/ — generate an HOS-compliant trip plan."""
 
@@ -73,34 +122,84 @@ class TripPlanView(APIView):
             )
 
         trip_request = TripRequest(**serializer.validated_data)
+        result = _handle_planning_errors(lambda: _planner.plan(trip_request))
+        if isinstance(result, Response):
+            return result
+        return Response(result.model_dump(), status=200)
 
-        try:
-            plan = _planner.plan(trip_request)
-        except GeocodingError as exc:
+
+class TripRouteView(APIView):
+    """POST /api/v1/trip/route/ — geocode addresses and fetch driving route."""
+
+    def post(self, request: Request) -> Response:
+        serializer = TripRequestSerializer(data=request.data)
+        if not serializer.is_valid():
             return Response(
-                {"error": "location_not_found", "detail": str(exc)},
+                {"error": "invalid_request", "detail": serializer.errors},
                 status=400,
             )
-        except RouteNotFoundError as exc:
-            return Response(
-                {"error": "route_not_found", "detail": str(exc)},
-                status=400,
-            )
-        except InsufficientCycleHoursError as exc:
-            return Response(
-                {"error": "insufficient_hours", "detail": str(exc)},
-                status=422,
-            )
-        except FacilityDataError as exc:
-            return Response(
-                {"error": "facility_data_unavailable", "detail": str(exc)},
-                status=503,
-            )
-        except Exception:  # noqa: BLE001
-            _log.exception("Unhandled error in TripPlanView for request data: %s", request.data)
-            return Response(
-                {"error": "internal_error", "detail": "An unexpected error occurred."},
-                status=500,
-            )
 
-        return Response(plan.model_dump(), status=200)
+        trip_request = TripRequest(**serializer.validated_data)
+        result = _handle_planning_errors(lambda: _planner.resolve_route(trip_request))
+        if isinstance(result, Response):
+            return result
+        return Response(result.model_dump(), status=200)
+
+
+class TripScheduleView(APIView):
+    """POST /api/v1/trip/schedule/ — run HOS simulation on a resolved route."""
+
+    def post(self, request: Request) -> Response:
+        schedule_req = _parse_body(ScheduleRequest, request.data)
+        if isinstance(schedule_req, Response):
+            return schedule_req
+
+        route_result = RoutePlanResult(
+            route_geometry=schedule_req.route_geometry,
+            total_distance_miles=schedule_req.total_distance_miles,
+            pickup_distance_miles=schedule_req.pickup_distance_miles,
+            coordinates=_dummy_coordinates(schedule_req.route_geometry),
+        )
+
+        result = _handle_planning_errors(
+            lambda: _planner.build_schedule(route_result, schedule_req.cycle_used_hrs)
+        )
+        if isinstance(result, Response):
+            return result
+        return Response(result.model_dump(), status=200)
+
+
+class TripEnrichView(APIView):
+    """POST /api/v1/trip/enrich/ — enrich stops and build trip summary."""
+
+    def post(self, request: Request) -> Response:
+        enrich_req = _parse_body(EnrichRequest, request.data)
+        if isinstance(enrich_req, Response):
+            return enrich_req
+
+        route_result = RoutePlanResult(
+            route_geometry=enrich_req.route_geometry,
+            total_distance_miles=enrich_req.total_distance_miles,
+            pickup_distance_miles=0.0,
+            coordinates=_dummy_coordinates(enrich_req.route_geometry),
+        )
+        schedule = ScheduleResult(days=enrich_req.days)
+
+        result = _handle_planning_errors(
+            lambda: _planner.enrich_and_summarize(
+                route_result, schedule, enrich_req.cycle_used_hrs
+            )
+        )
+        if isinstance(result, Response):
+            return result
+
+        enriched = EnrichedPlanResult(summary=result.summary, days=result.days)
+        return Response(enriched.model_dump(), status=200)
+
+
+def _dummy_coordinates(geometry: list) -> "RouteCoordinates":
+    """Placeholder coordinates — not used by schedule/enrich steps."""
+    from trip.domain.models import Coordinate, RouteCoordinates
+
+    origin = geometry[0] if geometry else Coordinate(lat=0.0, lng=0.0)
+    return RouteCoordinates(current=origin, pickup=origin, dropoff=origin)

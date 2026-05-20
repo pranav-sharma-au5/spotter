@@ -31,7 +31,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "corsheaders",
-    "trip",
+    "trip.apps.TripConfig",
 ]
 
 MIDDLEWARE = [
@@ -44,8 +44,18 @@ ROOT_URLCONF = "config.urls"
 
 WSGI_APPLICATION = "config.wsgi.application"
 
-# No database — this app is stateless
-DATABASES = {}
+# Local verification suite only (SQLite). Production/Vercel stays stateless.
+ENABLE_VERIFICATION = os.environ.get("ENABLE_VERIFICATION", "0") == "1"
+
+if DEBUG or ENABLE_VERIFICATION:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
+else:
+    DATABASES = {}
 
 LOGGING = {
     "version": 1,

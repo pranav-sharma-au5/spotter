@@ -10,6 +10,12 @@ from trip.utils import coord_at_mile
 
 _log = logging.getLogger(__name__)
 
+# If a mandatory break falls within this many miles after a fuel deadline, merge
+# into one Break + Fuel stop (avoids fuel-then-break 10 mi later after a long leg).
+_BREAK_FUEL_COMBINE_MILES = 55.0
+# Miles credited toward tank during a 10-hr rest (top-off at truck stop).
+_REST_FUEL_CREDIT_MILES = 400.0
+
 
 class HOSCalculatorService:
     """
@@ -172,6 +178,12 @@ class HOSCalculatorService:
 
             if is_rest_type:
                 drive_hrs_since_break = 0.0
+                if event_type == EventType.REST:
+                    miles_since_fuel = max(
+                        0.0, miles_since_fuel - _REST_FUEL_CREDIT_MILES
+                    )
+                elif event_type == EventType.RESTART:
+                    miles_since_fuel = 0.0
                 drive_hrs_today = 0.0
                 duty_hrs_today = 0.0
                 if event_type == EventType.RESTART:
@@ -240,6 +252,11 @@ class HOSCalculatorService:
 
             break_due = break_deadline <= mandatory + 0.01
             fuel_due = fuel_deadline <= mandatory + 0.01
+            break_soon_after_fuel = (
+                fuel_due
+                and not break_due
+                and (break_deadline - fuel_deadline) <= _BREAK_FUEL_COMBINE_MILES + 0.01
+            )
 
             if break_due and fuel_due:
                 emit(EventType.FUEL, "Break + Fuel Stop",
@@ -254,8 +271,14 @@ class HOSCalculatorService:
                 continue
 
             if fuel_due:
-                emit(EventType.FUEL, "Fuel Stop", fuel_deadline,
-                     self.fuel_stop_duration_hrs, [ConstraintType.FUEL])
+                if break_soon_after_fuel:
+                    emit(EventType.FUEL, "Break + Fuel Stop",
+                         fuel_deadline,
+                         self.required_break_hrs,
+                         [ConstraintType.BREAK, ConstraintType.FUEL])
+                else:
+                    emit(EventType.FUEL, "Fuel Stop", fuel_deadline,
+                         self.fuel_stop_duration_hrs, [ConstraintType.FUEL])
                 continue
 
             # Fallback: drive to next fixed stop

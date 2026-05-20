@@ -124,3 +124,63 @@ When ORS returns no per-leg `segments` (which happens when `instructions: false`
 cd backend
 pytest tests/ -v
 ```
+
+---
+
+## Local route verification suite
+
+Eight long-haul test corridors are saved in **SQLite** for manual review (map, itinerary, ELD) and optional LLM scoring. This is **local-only** — not deployed to Vercel.
+
+### Setup
+
+```bash
+# backend/.env
+MAPS_API_KEY=your-ors-key
+DEBUG=True
+ENABLE_VERIFICATION=1
+
+cd backend
+pip install -r requirements.txt
+python manage.py migrate
+python manage.py seed_verification_plans --export-md   # ~4–8 min, hits ORS
+
+# frontend/.env.local (optional; DEV mode also enables the UI)
+VITE_ENABLE_VERIFICATION=true
+
+cd frontend && npm run dev
+```
+
+Open the Dashboard → **Verification routes** → pick a corridor → use the checklist, **Copy for LLM review**, and open **View summary & map** / **View itinerary & ELD**.
+
+### Corridors
+
+| Route | ~Miles | Current → Pickup → Dropoff |
+|-------|--------|----------------------------|
+| Seattle → Miami | 3,300 | Tacoma, WA → Seattle, WA → Miami, FL |
+| Newark → Los Angeles | 2,800 | Jersey City, NJ → Newark, NJ → Los Angeles, CA |
+| Dallas → Portland | 2,100 | Fort Worth, TX → Dallas, TX → Portland, OR |
+| Chicago → Sacramento | 2,100 | Naperville, IL → Chicago, IL → Sacramento, CA |
+| Los Angeles → Chicago | 2,000 | Long Beach, CA → Los Angeles, CA → Chicago, IL |
+| Southern California → Atlanta | 2,200 | Riverside, CA → Los Angeles, CA → Atlanta, GA |
+| Houston → Philadelphia | 1,700 | Sugar Land, TX → Houston, TX → Philadelphia, PA |
+| Anchorage → Prudhoe Bay | 800 | Palmer, AK → Anchorage, AK → Prudhoe Bay, AK |
+
+### Manual LLM scoring
+
+1. Click **Copy for LLM review** (or open `backend/verification_exports/<slug>.md` after seeding with `--export-md`).
+2. Paste into Cursor or ChatGPT with the embedded rubric (distance, days, HOS structure, geography, ELD, overall).
+3. Record scores in `backend/verification_exports/SCORES.md` (created on first seed).
+
+### Refresh plans
+
+```bash
+python manage.py seed_verification_plans --force --export-md
+```
+
+### Automated HOS tests (no ORS)
+
+The same corridors are in `backend/tests/data/real_routes.py` for FMCSA invariant checks:
+
+```bash
+pytest tests/test_hos_real_routes.py -v
+```

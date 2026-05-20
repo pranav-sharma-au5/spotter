@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { reverseGeocode } from '../services/geocoding';
 import type { LocationSuggestion } from '../types/trip';
 
@@ -8,6 +8,8 @@ interface UseReverseGeocodeArgs {
   onResolved: (suggestion: LocationSuggestion) => void;
   /** Called when the GPS resolves to a location outside the supported service area */
   onError?: (message: string) => void;
+  /** When false, reset GPS UI back to idle (e.g. field was cleared) */
+  hasLocation?: boolean;
 }
 
 interface UseReverseGeocodeResult {
@@ -25,8 +27,15 @@ const SUPPORTED_COUNTRY_CODES = new Set(['US', 'CA']);
 export function useReverseGeocode({
   onResolved,
   onError,
+  hasLocation = false,
 }: UseReverseGeocodeArgs): UseReverseGeocodeResult {
   const [gpsState, setGpsState] = useState<GPSState>('idle');
+
+  useEffect(() => {
+    if (!hasLocation && gpsState === 'resolved') {
+      setGpsState('idle');
+    }
+  }, [hasLocation, gpsState]);
 
   const resolve = () => {
     if (!navigator.geolocation) return;

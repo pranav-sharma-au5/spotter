@@ -6,10 +6,11 @@ interface GPSButtonProps {
   onResolved: (suggestion: LocationSuggestion) => void;
   /** Called when GPS resolves outside the supported service area */
   onError?: (message: string) => void;
+  hasLocation?: boolean;
 }
 
-export function GPSButton({ onResolved, onError }: GPSButtonProps) {
-  const { gpsState, resolve } = useReverseGeocode({ onResolved, onError });
+export function GPSButton({ onResolved, onError, hasLocation = false }: GPSButtonProps) {
+  const { gpsState, resolve } = useReverseGeocode({ onResolved, onError, hasLocation });
 
   if (gpsState === 'loading') {
     return (

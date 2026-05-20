@@ -85,3 +85,39 @@ class TripPlan(BaseModel):
     summary: TripSummary
     route_geometry: list[Coordinate]
     days: list[TripDay]
+
+
+class RouteCoordinates(BaseModel):
+    current: Coordinate
+    pickup: Coordinate
+    dropoff: Coordinate
+
+
+class RoutePlanResult(BaseModel):
+    route_geometry: list[Coordinate]
+    total_distance_miles: float
+    pickup_distance_miles: float
+    coordinates: RouteCoordinates
+
+
+class ScheduleResult(BaseModel):
+    days: list[TripDay]
+
+
+class ScheduleRequest(BaseModel):
+    route_geometry: list[Coordinate]
+    total_distance_miles: float
+    pickup_distance_miles: float
+    cycle_used_hrs: float = Field(ge=0, le=70)
+
+
+class EnrichRequest(BaseModel):
+    route_geometry: list[Coordinate]
+    total_distance_miles: float
+    cycle_used_hrs: float = Field(ge=0, le=70)
+    days: list[TripDay]
+
+
+class EnrichedPlanResult(BaseModel):
+    summary: TripSummary
+    days: list[TripDay]

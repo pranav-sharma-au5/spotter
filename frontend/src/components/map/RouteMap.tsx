@@ -126,7 +126,7 @@ export const RouteMap = forwardRef<RouteMapHandle, RouteMapProps>(function Route
     boostNativeCityLabels(mapRef.current.getMap());
   }, [bounds]);
 
-  if (!plan) {
+  if (!plan?.route_geometry.length) {
     return <div className="flex-1 bg-bg-elevated" />;
   }
 

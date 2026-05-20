@@ -1,4 +1,5 @@
 import { useId, useRef } from 'react';
+import { X } from 'lucide-react';
 import { useLocationAutocomplete } from '../../hooks/useLocationAutocomplete';
 import { useCombobox } from '../../hooks/useCombobox';
 import { SuggestionList } from './SuggestionList';
@@ -12,6 +13,8 @@ export interface LocationAutocompleteProps {
   onSelect: (suggestion: LocationSuggestion) => void;
   /** Disables the input element entirely (e.g. while GPS is acquiring position) */
   disabled?: boolean;
+  /** Show a clear button when the field has a value */
+  clearable?: boolean;
   rightSlot?: React.ReactNode;
   /** Optional inline error message shown beneath the input */
   error?: string;
@@ -24,6 +27,7 @@ export function LocationAutocomplete({
   onChange,
   onSelect,
   disabled = false,
+  clearable = true,
   rightSlot,
   error,
 }: LocationAutocompleteProps) {
@@ -64,6 +68,13 @@ export function LocationAutocomplete({
     value.length >= 3 &&
     (isLoading || suggestions.length > 0 || autocompleteActive);
 
+  const showClear = clearable && !disabled && value.length > 0;
+
+  const handleClear = () => {
+    onChange('');
+    inputRef.current?.focus();
+  };
+
   return (
     <div ref={containerRef} className="relative">
       <p className="mb-0.5 text-[10px] font-medium tracking-wider text-text-muted">
@@ -92,8 +103,18 @@ export function LocationAutocomplete({
           onKeyDown={handleKeyDown}
           onFocus={handleFocus}
           onBlur={handleBlur}
-          className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-hint focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-w-0 flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-hint focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
         />
+        {showClear && (
+          <button
+            type="button"
+            aria-label="Clear location"
+            onClick={handleClear}
+            className="shrink-0 rounded-full p-1 text-text-muted transition-colors hover:bg-bg-elevated hover:text-text-secondary"
+          >
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        )}
         {rightSlot}
       </div>
 

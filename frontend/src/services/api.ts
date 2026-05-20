@@ -1,6 +1,15 @@
 import axios, { AxiosError } from 'axios';
 import { useMutation } from '@tanstack/react-query';
-import type { TripPlan, TripRequest } from '../types/trip';
+import type {
+  EnrichedPlanResult,
+  RoutePlanResult,
+  ScheduleResult,
+  TripPlan,
+  TripRequest,
+  VerificationRouteDetail,
+  VerificationRouteSummary,
+} from '../types/trip';
+import { isVerificationEnabled } from '../config/verification';
 
 /**
  * Same-origin /api/* on Vercel (see vercel.json rewrites).
@@ -66,6 +75,73 @@ function mapAxiosError(err: AxiosError<ApiErrorBody>): string {
 export async function planTrip(request: TripRequest): Promise<TripPlan> {
   const { data } = await apiClient.post<TripPlan>('/api/v1/trip/plan/', request);
   return data;
+}
+
+export async function planRoute(request: TripRequest): Promise<RoutePlanResult> {
+  const { data } = await apiClient.post<RoutePlanResult>('/api/v1/trip/route/', request);
+  return data;
+}
+
+export async function planSchedule(
+  route: RoutePlanResult,
+  cycleUsedHrs: number,
+): Promise<ScheduleResult> {
+  const { data } = await apiClient.post<ScheduleResult>('/api/v1/trip/schedule/', {
+    route_geometry: route.route_geometry,
+    total_distance_miles: route.total_distance_miles,
+    pickup_distance_miles: route.pickup_distance_miles,
+    cycle_used_hrs: cycleUsedHrs,
+  });
+  return data;
+}
+
+export async function planEnrich(
+  route: RoutePlanResult,
+  schedule: ScheduleResult,
+  cycleUsedHrs: number,
+): Promise<EnrichedPlanResult> {
+  const { data } = await apiClient.post<EnrichedPlanResult>('/api/v1/trip/enrich/', {
+    route_geometry: route.route_geometry,
+    total_distance_miles: route.total_distance_miles,
+    cycle_used_hrs: cycleUsedHrs,
+    days: schedule.days,
+  });
+  return data;
+}
+
+export async function listVerificationRoutes(): Promise<VerificationRouteSummary[]> {
+  const { data } = await apiClient.get<VerificationRouteSummary[]>(
+    '/api/v1/verification/routes/',
+  );
+  return data;
+}
+
+export async function getVerificationRoute(slug: string): Promise<VerificationRouteDetail> {
+  const { data } = await apiClient.get<VerificationRouteDetail>(
+    `/api/v1/verification/routes/${slug}/`,
+  );
+  return data;
+}
+
+export async function getVerificationExportMarkdown(slug: string): Promise<string> {
+  const { data } = await apiClient.get<string>(
+    `/api/v1/verification/routes/${slug}/export/`,
+    {
+      headers: { Accept: 'text/markdown' },
+      responseType: 'text',
+    },
+  );
+  return data;
+}
+
+export function verificationRoutesQueryOptions() {
+  return {
+    queryKey: ['verification-routes'] as const,
+    queryFn: listVerificationRoutes,
+    enabled: isVerificationEnabled,
+    retry: false,
+    staleTime: 60_000,
+  };
 }
 
 export function usePlanTripMutation(

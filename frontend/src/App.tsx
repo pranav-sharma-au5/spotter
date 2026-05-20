@@ -5,6 +5,8 @@ import { Dashboard } from './pages/Dashboard';
 import { PlanInput } from './pages/PlanInput';
 import { TripSummary } from './pages/TripSummary';
 import { TripDetail } from './pages/TripDetail';
+import { VerifyRoute } from './pages/VerifyRoute';
+import { isVerificationEnabled } from './config/verification';
 import { useTripStore } from './stores/tripStore';
 import { useTheme } from './hooks/useTheme';
 
@@ -30,7 +32,8 @@ function ThemeSync() {
 
 function GuardedRoute({ children }: { children: React.ReactNode }) {
   const plan = useTripStore((s) => s.plan);
-  if (!plan) return <Navigate to="/" replace />;
+  const planStep = useTripStore((s) => s.planStep);
+  if (!plan && planStep === 'idle') return <Navigate to="/" replace />;
   return <>{children}</>;
 }
 
@@ -42,6 +45,9 @@ export function App() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/plan" element={<PlanInput />} />
+          {isVerificationEnabled && (
+            <Route path="/verify/:slug" element={<VerifyRoute />} />
+          )}
           <Route
             path="/summary"
             element={(
