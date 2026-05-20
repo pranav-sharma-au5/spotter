@@ -15,6 +15,7 @@ export interface RouteValues {
 
 export interface RouteSpineProps {
   values: RouteValues;
+  fieldErrors?: Partial<Record<RouteField, string>>;
   onChange: (field: RouteField, value: string) => void;
   onSelect: (field: RouteField, suggestion: LocationSuggestion) => void;
   onSwapPickupDropoff: () => void;
@@ -82,7 +83,13 @@ function SwapPickupDropoffButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function RouteSpine({ values, onChange, onSelect, onSwapPickupDropoff }: RouteSpineProps) {
+export function RouteSpine({
+  values,
+  fieldErrors = {},
+  onChange,
+  onSelect,
+  onSwapPickupDropoff,
+}: RouteSpineProps) {
   // GPS can only resolve the "current location" field.
   // If it resolves to a location outside US/Canada we surface the error here
   // and clear it the moment the user starts typing again.
@@ -90,7 +97,6 @@ export function RouteSpine({ values, onChange, onSelect, onSwapPickupDropoff }: 
 
   const handleGPSResolved = (suggestion: LocationSuggestion) => {
     setGpsError(null);
-    onChange('current', suggestion.shortName);
     onSelect('current', suggestion);
   };
 
@@ -116,7 +122,7 @@ export function RouteSpine({ values, onChange, onSelect, onSwapPickupDropoff }: 
           value={values.current}
           onChange={handleCurrentChange}
           onSelect={(s) => onSelect('current', s)}
-          error={gpsError ?? undefined}
+          error={gpsError ?? fieldErrors.current}
           rightSlot={
             <GPSButton
               hasLocation={!!values.current}
@@ -137,6 +143,7 @@ export function RouteSpine({ values, onChange, onSelect, onSwapPickupDropoff }: 
               value={values.pickup}
               onChange={(v) => onChange('pickup', v)}
               onSelect={(s) => onSelect('pickup', s)}
+              error={fieldErrors.pickup}
             />
           </div>
         </SpineDot>
@@ -149,6 +156,7 @@ export function RouteSpine({ values, onChange, onSelect, onSwapPickupDropoff }: 
               value={values.dropoff}
               onChange={(v) => onChange('dropoff', v)}
               onSelect={(s) => onSelect('dropoff', s)}
+              error={fieldErrors.dropoff}
             />
           </div>
         </SpineDot>

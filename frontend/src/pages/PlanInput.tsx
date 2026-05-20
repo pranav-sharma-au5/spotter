@@ -15,6 +15,7 @@ export function PlanInput() {
     setCycleHrs,
     canSubmit,
     submitHint,
+    fieldErrors,
     handleChange,
     handleSelect,
     handleSwap,
@@ -34,6 +35,7 @@ export function PlanInput() {
         <PageScrollContent maxWidth="xl" innerClassName="space-y-4">
         <RouteFormSection
           route={route}
+          fieldErrors={fieldErrors}
           onChange={handleChange}
           onSelect={handleSelect}
           onSwap={handleSwap}

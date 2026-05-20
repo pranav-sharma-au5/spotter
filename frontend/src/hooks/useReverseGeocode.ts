@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
 import { reverseGeocode } from '../services/geocoding';
+import {
+  isSupportedLocation,
+  SERVICE_AREA_ERROR,
+} from '../services/geocoding/serviceArea';
 import type { LocationSuggestion } from '../types/trip';
 
 export type GPSState = 'idle' | 'loading' | 'resolved';
@@ -16,8 +20,6 @@ interface UseReverseGeocodeResult {
   gpsState: GPSState;
   resolve: () => void;
 }
-
-const SUPPORTED_COUNTRY_CODES = new Set(['US', 'CA']);
 
 /**
  * Wraps `navigator.geolocation.getCurrentPosition` and calls the
@@ -46,8 +48,8 @@ export function useReverseGeocode({
         const { latitude, longitude } = pos.coords;
         const suggestion = await reverseGeocode(latitude, longitude);
 
-        if (suggestion.countryCode && !SUPPORTED_COUNTRY_CODES.has(suggestion.countryCode)) {
-          onError?.('GPS location is outside the US/Canada service area.');
+        if (!isSupportedLocation(suggestion)) {
+          onError?.(SERVICE_AREA_ERROR);
           setGpsState('idle');
           return;
         }

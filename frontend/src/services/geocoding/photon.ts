@@ -4,10 +4,10 @@ import {
   buildShortName,
   toCountryCode,
 } from './formatLocationName';
+import { isSupportedCountryCode } from './serviceArea';
 
 const PHOTON_BASE = 'https://photon.komoot.io/api/';
 const US_CA_BBOX = '-180,18,-52,84';
-const ALLOWED_COUNTRIES = new Set(['United States', 'Canada']);
 
 interface PhotonProperties {
   osm_id?: number;
@@ -15,6 +15,7 @@ interface PhotonProperties {
   city?: string;
   state?: string;
   country?: string;
+  countrycode?: string;
 }
 
 interface PhotonFeature {
@@ -26,13 +27,15 @@ interface PhotonResponse {
   features: PhotonFeature[];
 }
 
-export function isAllowedCountry(country: string | undefined): boolean {
-  return ALLOWED_COUNTRIES.has(country ?? '');
+export function resolvePhotonCountryCode(
+  properties: PhotonProperties,
+): LocationSuggestion['countryCode'] {
+  return toCountryCode(properties.countrycode) ?? toCountryCode(properties.country);
 }
 
 function sortUSThenCA(a: PhotonFeature, b: PhotonFeature): number {
-  const rank = (c?: string) => (c === 'United States' ? 0 : c === 'Canada' ? 1 : 2);
-  return rank(a.properties.country) - rank(b.properties.country);
+  const rank = (code: LocationSuggestion['countryCode']) => (code === 'US' ? 0 : code === 'CA' ? 1 : 2);
+  return rank(resolvePhotonCountryCode(a.properties)) - rank(resolvePhotonCountryCode(b.properties));
 }
 
 export function photonFeatureToSuggestion(f: PhotonFeature): LocationSuggestion {
@@ -42,7 +45,7 @@ export function photonFeatureToSuggestion(f: PhotonFeature): LocationSuggestion 
     shortName: buildShortName(f.properties),
     lat: f.geometry.coordinates[1],
     lng: f.geometry.coordinates[0],
-    countryCode: toCountryCode(f.properties.country),
+    countryCode: resolvePhotonCountryCode(f.properties),
   };
 }
 
@@ -50,7 +53,7 @@ function isValidFeature(f: PhotonFeature): boolean {
   return (
     Array.isArray(f.geometry?.coordinates) &&
     f.geometry.coordinates.length === 2 &&
-    isAllowedCountry(f.properties.country)
+    isSupportedCountryCode(resolvePhotonCountryCode(f.properties))
   );
 }
 
@@ -68,6 +71,8 @@ export async function fetchPhotonSuggestions(query: string): Promise<LocationSug
   url.searchParams.set('limit', '10');
   url.searchParams.set('lang', 'en');
   url.searchParams.set('bbox', US_CA_BBOX);
+  url.searchParams.append('countrycode', 'US');
+  url.searchParams.append('countrycode', 'CA');
 
   const res = await fetch(url.toString());
   if (!res.ok) return [];

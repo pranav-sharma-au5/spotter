@@ -17,8 +17,10 @@ interface NominatimAddress {
 }
 
 export function toCountryCode(country: string | undefined): 'US' | 'CA' | undefined {
-  if (country === 'United States') return 'US';
-  if (country === 'Canada') return 'CA';
+  if (!country) return undefined;
+  const normalized = country.trim();
+  if (normalized === 'United States' || normalized === 'US') return 'US';
+  if (normalized === 'Canada' || normalized === 'CA') return 'CA';
   return undefined;
 }
 
