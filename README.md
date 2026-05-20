@@ -35,21 +35,18 @@ Route pages use shared layout from `frontend/src/components/layout/` (`PageShell
 
 ### Backend layout
 
-The `trip` app is split by responsibility:
+See **`backend/trip/README.md`** for a full folder map and request-flow diagram. Summary:
 
-| Path | Role |
-|------|------|
-| `trip/wiring.py` | Builds the planner service graph from Django settings |
-| `trip/api/` | Request parsing and error mapping for DRF views |
-| `trip/views.py` | Thin HTTP handlers |
-| `trip/services/trip_planner.py` | Orchestrates geocode → route → HOS → enrich |
-| `trip/services/enrichment.py` | POI lookup and reverse geocoding for stops |
-| `trip/services/facility/` | ORS POI client, naming, selection |
-| `trip/services/hos/` | HOS simulation, drive injection, day grouping |
-| `trip/verification/` | Local-only saved-route API and seed command |
-| `trip/domain/event_groups.py` | Shared event-type rules (rest/fuel buffers) |
+| Layer | Path | Role |
+|-------|------|------|
+| HTTP | `trip/api/` | Views, serializers, parsing, errors |
+| Core | `trip/core/` | Wiring, geo utils, constants, concurrency |
+| Domain | `trip/domain/` | Pydantic models, enums, exceptions |
+| Planning | `trip/services/` | Orchestrator, enrichment, summary |
+| Integrations | `trip/services/maps/`, `facility/`, `hos/` | ORS, POI, HOS simulation |
+| Verification | `trip/verification/` | Local-only routes, ORM, seed, markdown export |
 
-Import shims remain at `trip/services/hos_calculator.py` and `trip/verification_views.py` for tests and older imports.
+Django entry points: `trip/urls.py`, `trip/models.py` (re-exports verification ORM).
 
 ## Environment Variables
 
