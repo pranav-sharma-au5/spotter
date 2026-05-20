@@ -42,7 +42,7 @@ export const EVENT_CONFIG: Record<EventType, EventConfigEntry> = {
     colour: '#EF9F27',
     label: 'Break',
     icon: Coffee,
-    row: 3,
+    row: 0,
     markerSize: 'sm',
     showInLegend: true,
     showOnMap: true,
@@ -71,7 +71,7 @@ export const EVENT_CONFIG: Record<EventType, EventConfigEntry> = {
     showInLegend: true,
     showOnMap: true,
     variant: 'stop',
-    eldRemark: 'Sleeper berth',
+    eldRemark: '10-hour sleeper berth',
     showOpeningHours: false,
   },
   pickup: {

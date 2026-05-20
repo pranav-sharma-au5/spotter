@@ -1,27 +1,27 @@
 import {
-  buildSegments,
-  buildConnectors,
+  buildDutyIntervals,
+  intervalsToSegments,
+  intervalsToConnectors,
   buildRemarks,
   buildEldHeaderFields,
   hourToX,
   getLogDate,
   calcTotalMiles,
   calcCumulativeTruckMiles,
-  calcRowHours,
+  sumRowHours,
   driverInitials,
   ELD_LAYOUT,
+  remarksMaxLines,
 } from './eld-utils';
 import type { EldHeaderField } from './eld-utils';
+import type { Segment, Connector } from './eldSvgAdapter';
 import type { TripDay } from '../../types/trip';
 
 export interface ELDLogSheetProps {
   day: TripDay;
-  /** Route origin — "From" and default home operating center */
   from: string;
-  /** Route destination — "To" field */
   to: string;
   dayIndex: number;
-  /** All trip days — cumulative truck miles through this day */
   allDays?: TripDay[];
   driverName?: string;
   driverNo?: string;
@@ -95,6 +95,30 @@ function ELDHeader({ fields }: ELDHeaderProps) {
   );
 }
 
+function renderHourTicks(gridBottom: number) {
+  return Array.from({ length: 25 }, (_, h) => (
+    <line
+      key={`tick-${h}`}
+      x1={hourToX(h)} y1={GRID_LINE_TOP} x2={hourToX(h)} y2={gridBottom}
+      stroke="#90a4ae" strokeWidth={h % 12 === 0 ? 1 : 0.5}
+    />
+  ));
+}
+
+function renderQuarterTicks() {
+  return Array.from({ length: 24 * 4 + 1 }, (_, i) => {
+    if (i % 4 === 0) return null;
+    const h = i / 4;
+    return (
+      <line
+        key={`minor-${i}`}
+        x1={hourToX(h)} y1={GRID_LINE_TOP} x2={hourToX(h)} y2={GRID_LINE_TOP + 8}
+        stroke="#b0bec5" strokeWidth={0.3}
+      />
+    );
+  });
+}
+
 function ELDGrid() {
   const gridBottom = ROW_Y_TOPS[3] + ROW_HEIGHT;
   return (
@@ -116,24 +140,8 @@ function ELDGrid() {
           fill="none" stroke="#b0bec5" strokeWidth={0.5}
         />
       ))}
-      {Array.from({ length: 25 }, (_, h) => (
-        <line
-          key={`tick-${h}`}
-          x1={hourToX(h)} y1={GRID_LINE_TOP} x2={hourToX(h)} y2={gridBottom}
-          stroke="#90a4ae" strokeWidth={h % 12 === 0 ? 1 : 0.5}
-        />
-      ))}
-      {Array.from({ length: 24 * 4 + 1 }, (_, i) => {
-        if (i % 4 === 0) return null;
-        const h = i / 4;
-        return (
-          <line
-            key={`minor-${i}`}
-            x1={hourToX(h)} y1={GRID_LINE_TOP} x2={hourToX(h)} y2={GRID_LINE_TOP + 8}
-            stroke="#b0bec5" strokeWidth={0.3}
-          />
-        );
-      })}
+      {renderHourTicks(gridBottom)}
+      {renderQuarterTicks()}
       {HOUR_LABELS.map((lbl, h) => (
         <text key={`hlbl-${h}`} x={hourToX(h)} y={HOUR_LABEL_Y} textAnchor="middle" style={{ ...TEXT_STYLE, fontSize: 6.5 }}>
           {lbl}
@@ -158,8 +166,8 @@ function ELDGrid() {
 }
 
 interface ELDDutyLinesProps {
-  segments: ReturnType<typeof buildSegments>;
-  connectors: ReturnType<typeof buildConnectors>;
+  segments: Segment[];
+  connectors: Connector[];
   rowHours: Record<0 | 1 | 2 | 3, number>;
 }
 
@@ -200,7 +208,8 @@ interface ELDRemarksProps {
 }
 
 function ELDRemarks({ remarks }: ELDRemarksProps) {
-  const maxLines = Math.floor((REMARKS_BOX_H - 8) / 9);
+  const maxLines = remarksMaxLines();
+  const lineHeight = ELD_LAYOUT.REMARKS_LINE_HEIGHT;
   return (
     <>
       <text x={10} y={REMARKS_TITLE_Y} style={{ ...TEXT_STYLE, fontSize: 7.5, fontWeight: 700 }}>REMARKS</text>
@@ -209,7 +218,7 @@ function ELDRemarks({ remarks }: ELDRemarksProps) {
       </text>
       <rect x={10} y={REMARKS_BOX_Y} width={GRID_X_END - 10} height={REMARKS_BOX_H} fill="none" stroke="#b0bec5" strokeWidth={0.5} />
       {remarks.slice(0, maxLines).map((line, i) => (
-        <text key={`remark-${i}`} x={14} y={REMARKS_BOX_Y + 10 + i * 9} style={{ ...TEXT_STYLE, fontSize: 7 }}>
+        <text key={`remark-${i}`} x={14} y={REMARKS_BOX_Y + 10 + i * lineHeight} style={{ ...TEXT_STYLE, fontSize: 7 }}>
           {line}
         </text>
       ))}
@@ -278,14 +287,15 @@ export function ELDLogSheet({
   commodity = 'General Freight',
   loadId,
 }: ELDLogSheetProps) {
-  const segments = buildSegments(day);
-  const connectors = buildConnectors(segments);
+  const intervals = buildDutyIntervals(day);
+  const segments = intervalsToSegments(intervals);
+  const connectors = intervalsToConnectors(intervals);
+  const rowHours = sumRowHours(intervals);
+  const remarks = buildRemarks(day);
   const logDate = getLogDate(dayIndex);
   const drivingMiles = calcTotalMiles(day);
   const daysForOdometer = allDays ?? [day];
   const truckMiles = calcCumulativeTruckMiles(daysForOdometer, dayIndex);
-  const rowHours = calcRowHours(day);
-  const remarks = buildRemarks(day);
   const initials = driverInitials(driverName);
   const home = homeOperatingCenter ?? from;
   const shipperName = shipper ?? from;
