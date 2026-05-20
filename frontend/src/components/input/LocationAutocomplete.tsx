@@ -77,7 +77,7 @@ export function LocationAutocomplete({
 
   return (
     <div ref={containerRef} className="relative">
-      <p className="mb-0.5 text-[10px] font-medium tracking-wider text-text-muted">
+      <p className="mb-0.5 text-xs font-semibold tracking-wider text-text-secondary">
         {label}
       </p>
 
