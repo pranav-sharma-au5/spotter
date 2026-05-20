@@ -1,10 +1,8 @@
 import axios, { AxiosError } from 'axios';
-import { useMutation } from '@tanstack/react-query';
 import type {
   EnrichedPlanResult,
   RoutePlanResult,
   ScheduleResult,
-  TripPlan,
   TripRequest,
   VerificationRouteDetail,
   VerificationRouteSummary,
@@ -77,11 +75,6 @@ export function mapPlanningError(err: unknown): string {
   return 'Something went wrong. Please try again.';
 }
 
-export async function planTrip(request: TripRequest): Promise<TripPlan> {
-  const { data } = await apiClient.post<TripPlan>('/api/v1/trip/plan/', request);
-  return data;
-}
-
 export async function planRoute(request: TripRequest): Promise<RoutePlanResult> {
   const { data } = await apiClient.post<RoutePlanResult>('/api/v1/trip/route/', request);
   return data;
@@ -147,17 +140,4 @@ export function verificationRoutesQueryOptions() {
     retry: false,
     staleTime: 60_000,
   };
-}
-
-export function usePlanTripMutation(
-  onSuccess: (plan: TripPlan) => void,
-  onError: (message: string) => void,
-) {
-  return useMutation<TripPlan, AxiosError<ApiErrorBody>, TripRequest>({
-    mutationFn: planTrip,
-    onSuccess,
-    onError: (err) => {
-      onError(mapAxiosError(err));
-    },
-  });
 }

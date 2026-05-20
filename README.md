@@ -61,7 +61,15 @@ Django entry points: `trip/urls.py`, `trip/models.py` (re-exports verification O
 
 ## API
 
-**POST** `/api/v1/trip/plan/`
+The SPA calls three endpoints in sequence for progressive loading:
+
+| Step | Endpoint | Body |
+|------|----------|------|
+| 1 | **POST** `/api/v1/trip/route/` | `TripRequest` — three addresses + `cycle_used_hrs` |
+| 2 | **POST** `/api/v1/trip/schedule/` | Route geometry, distances, `cycle_used_hrs` |
+| 3 | **POST** `/api/v1/trip/enrich/` | Route + `days` from schedule + `cycle_used_hrs` |
+
+Example route request:
 
 ```json
 {
@@ -72,20 +80,18 @@ Django entry points: `trip/urls.py`, `trip/models.py` (re-exports verification O
 }
 ```
 
-Returns a `TripPlan` with `summary`, `days` (day-by-day events), and `route_geometry`.
+The enrich step returns `summary` and enriched `days`; the client merges these with route geometry into a full `TripPlan`.
 
 ---
 
 ## How It Works
 
-### Request flow (one POST call)
+### Request flow (three API calls)
 
 ```
-1. Geocode 3 addresses           →  3 ORS /geocode/search calls
-2. Get driving route              →  1 ORS /v2/directions/driving-car call
-3. HOS simulation                 →  pure Python, zero API calls
-4. Enrich each stop with POI      →  1 ORS /pois call per stop (~10–15 calls)
-5. Build summary & return
+1. POST /trip/route/     Geocode 3 addresses + ORS driving route
+2. POST /trip/schedule/  HOS simulation (pure Python, zero API calls)
+3. POST /trip/enrich/    POI labels per stop + trip summary (~10–15 ORS /pois calls)
 ```
 
 **Why this order?**

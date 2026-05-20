@@ -5,7 +5,9 @@ This Django app turns three addresses into an FMCSA-compliant driving plan. Code
 ## Request flow (production API)
 
 ```
-POST /api/v1/trip/plan/
+POST /api/v1/trip/route/      → resolve_route()
+POST /api/v1/trip/schedule/   → build_schedule()
+POST /api/v1/trip/enrich/     → enrich_and_summarize()
         │
         ▼
   api/views.py          ← HTTP only
@@ -19,7 +21,7 @@ POST /api/v1/trip/plan/
         └── summary.py     trip summary message
 ```
 
-Split endpoints (`/trip/route/`, `/trip/schedule/`, `/trip/enrich/`) call the same planner methods for progressive loading.
+The SPA uses these three endpoints for progressive loading (map appears after step 1).
 
 ## Folder map
 

@@ -1,7 +1,7 @@
 """Vercel Python Serverless Function — Django WSGI entrypoint.
 
 Vercel routes all /api/* requests here. Django's URL router then dispatches
-to the appropriate view based on the full path (e.g. /api/v1/trip/plan/).
+to the appropriate view based on the full path (e.g. /api/v1/trip/route/).
 """
 import os
 import sys

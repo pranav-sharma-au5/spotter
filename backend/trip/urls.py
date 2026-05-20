@@ -2,10 +2,9 @@
 from django.conf import settings
 from django.urls import path
 
-from trip.api.views import TripEnrichView, TripPlanView, TripRouteView, TripScheduleView
+from trip.api.views import TripEnrichView, TripRouteView, TripScheduleView
 
 urlpatterns = [
-    path("trip/plan/", TripPlanView.as_view(), name="trip-plan"),
     path("trip/route/", TripRouteView.as_view(), name="trip-route"),
     path("trip/schedule/", TripScheduleView.as_view(), name="trip-schedule"),
     path("trip/enrich/", TripEnrichView.as_view(), name="trip-enrich"),

@@ -14,20 +14,6 @@ from trip.services.trip_planner import TripPlannerService
 _planner: TripPlannerService = build_planner()
 
 
-class TripPlanView(APIView):
-    """POST /api/v1/trip/plan/ — generate an HOS-compliant trip plan."""
-
-    def post(self, request: Request) -> Response:
-        trip_request = parse_trip_request(request.data)
-        if isinstance(trip_request, Response):
-            return trip_request
-
-        result = handle_planning_errors(lambda: _planner.plan(trip_request))
-        if isinstance(result, Response):
-            return result
-        return Response(result.model_dump(), status=200)
-
-
 class TripRouteView(APIView):
     """POST /api/v1/trip/route/ — geocode addresses and fetch driving route."""
 
