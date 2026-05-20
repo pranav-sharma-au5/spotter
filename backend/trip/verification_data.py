@@ -118,12 +118,12 @@ VERIFICATION_ROUTE_DEFS: list[VerificationRouteDef] = [
     ),
     _route(
         "anchorage_prudhoe",
-        "Anchorage → Prudhoe Bay",
-        "Palmer, AK",
-        "Anchorage, AK",
-        "Prudhoe Bay, AK",
-        800.0,
+        "Anchorage → Deadhorse (Prudhoe Bay)",
+        "Wasilla, AK",
+        "Anchorage International Airport, AK",
+        "Deadhorse, AK",
+        900.0,
         8,
-        "Remote Alaska — ORS routing may fail",
+        "Dalton Hwy corridor; dropoff at Deadhorse (~908 mi via ORS)",
     ),
 ]

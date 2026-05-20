@@ -140,8 +140,11 @@ class OpenRouteServiceClient(AbstractMapClient):
             raise RouteNotFoundError("At least two waypoints are required.")
 
         url = f"{self._base_url}/v2/directions/driving-car"
+        # Widen snap radius for rural/remote geocodes (default ORS is 350 m).
+        snap_radius_m = 10_000
         body = {
             "coordinates": [[wp.lng, wp.lat] for wp in waypoints],
+            "radiuses": [snap_radius_m] * len(waypoints),
             "instructions": False,
             "geometry": True,
         }

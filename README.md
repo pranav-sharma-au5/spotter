@@ -163,7 +163,7 @@ Open the Dashboard → **Verification routes** → pick a corridor → use the c
 | Los Angeles → Chicago | 2,000 | Long Beach, CA → Los Angeles, CA → Chicago, IL |
 | Southern California → Atlanta | 2,200 | Riverside, CA → Los Angeles, CA → Atlanta, GA |
 | Houston → Philadelphia | 1,700 | Sugar Land, TX → Houston, TX → Philadelphia, PA |
-| Anchorage → Prudhoe Bay | 800 | Palmer, AK → Anchorage, AK → Prudhoe Bay, AK |
+| Anchorage → Deadhorse (Prudhoe Bay) | ~850 | Wasilla, AK → Anchorage International Airport, AK → Deadhorse, AK |
 
 ### Manual LLM scoring
 

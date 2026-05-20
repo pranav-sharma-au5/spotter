@@ -67,9 +67,9 @@ export const POPULAR_ROUTES: PopularRoute[] = [
   },
   {
     id: 'anchorage-prudhoe',
-    label: 'Anchorage → Prudhoe Bay',
-    pickup: { id: 'anchorage-ak', shortName: 'Anchorage, AK' },
-    dropoff: { id: 'prudhoe-bay-ak', shortName: 'Prudhoe Bay, AK' },
+    label: 'Anchorage → Deadhorse',
+    pickup: { id: 'anchorage-airport-ak', shortName: 'Anchorage International Airport, AK' },
+    dropoff: { id: 'deadhorse-ak', shortName: 'Deadhorse, AK' },
   },
 ];
 
