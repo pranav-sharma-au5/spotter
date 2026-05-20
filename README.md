@@ -33,6 +33,24 @@ npm install && npm run dev
 
 Route pages use shared layout from `frontend/src/components/layout/` (`PageShell`, `PageScrollContent`, `PageSection`) and named section components under `frontend/src/components/<page>/`. Keep each page file as a short list of sections; put markup and copy in the section files.
 
+### Backend layout
+
+The `trip` app is split by responsibility:
+
+| Path | Role |
+|------|------|
+| `trip/wiring.py` | Builds the planner service graph from Django settings |
+| `trip/api/` | Request parsing and error mapping for DRF views |
+| `trip/views.py` | Thin HTTP handlers |
+| `trip/services/trip_planner.py` | Orchestrates geocode → route → HOS → enrich |
+| `trip/services/enrichment.py` | POI lookup and reverse geocoding for stops |
+| `trip/services/facility/` | ORS POI client, naming, selection |
+| `trip/services/hos/` | HOS simulation, drive injection, day grouping |
+| `trip/verification/` | Local-only saved-route API and seed command |
+| `trip/domain/event_groups.py` | Shared event-type rules (rest/fuel buffers) |
+
+Import shims remain at `trip/services/hos_calculator.py` and `trip/verification_views.py` for tests and older imports.
+
 ## Environment Variables
 
 | Variable | Description | Required |

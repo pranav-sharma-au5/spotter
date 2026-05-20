@@ -2,7 +2,7 @@
 from django.conf import settings
 from django.urls import path
 
-from trip.views import TripEnrichView, TripPlanView, TripRouteView, TripScheduleView
+from trip.api.views import TripEnrichView, TripPlanView, TripRouteView, TripScheduleView
 
 urlpatterns = [
     path("trip/plan/", TripPlanView.as_view(), name="trip-plan"),
@@ -12,7 +12,7 @@ urlpatterns = [
 ]
 
 if settings.DEBUG or getattr(settings, "ENABLE_VERIFICATION", False):
-    from trip.verification_views import (
+    from trip.verification.views import (
         VerificationRouteDetailView,
         VerificationRouteExportView,
         VerificationRouteListView,

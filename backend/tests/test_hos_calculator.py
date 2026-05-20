@@ -2,7 +2,7 @@
 import pytest
 
 from trip.domain.enums import ConstraintType, EventType
-from trip.exceptions import InsufficientCycleHoursError
+from trip.domain.exceptions import InsufficientCycleHoursError
 from trip.services.hos_calculator import HOSCalculatorService
 
 

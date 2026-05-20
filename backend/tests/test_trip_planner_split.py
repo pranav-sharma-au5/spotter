@@ -4,15 +4,15 @@ from unittest.mock import MagicMock
 from trip.domain.enums import EventType
 from trip.domain.models import Coordinate, RouteCoordinates, RoutePlanResult, TripRequest
 from trip.services.facility import FacilityService
-from trip.services.geocoding import GeocodingService
+from trip.services.maps import GeocodingService
 from trip.services.hos_calculator import HOSCalculatorService
-from trip.services.routing import RoutingService
+from trip.services.maps import RoutingService
 from trip.services.summary import SummaryService
 from trip.services.trip_planner import TripPlannerService
 
 
 def _make_route_result(total_miles: float, pickup_miles: float, geometry: list[Coordinate]):
-    from trip.services.map_client import RouteResult, RouteSegment
+    from trip.services.maps import RouteResult, RouteSegment
 
     seg1 = RouteSegment(
         from_coord=geometry[0],

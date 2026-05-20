@@ -2,7 +2,7 @@
 from trip.domain.enums import EventType, FacilityType
 from trip.domain.models import Facility, StopInfo
 from trip.services.facility import FacilityService
-from trip.utils import cumulative_miles
+from trip.core.utils import cumulative_miles
 
 
 def test_facility_projected_onto_route(sample_route_geometry):

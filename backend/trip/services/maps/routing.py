@@ -1,6 +1,6 @@
 """Routing service — calculates a driving route through ordered waypoints."""
 from trip.domain.models import Coordinate
-from trip.services.map_client import AbstractMapClient, RouteResult
+from trip.services.maps.map_client import AbstractMapClient, RouteResult
 
 
 class RoutingService:

@@ -3,9 +3,8 @@ from __future__ import annotations
 
 import math
 
+from trip.core.constants import EARTH_RADIUS_MILES
 from trip.domain.models import Coordinate
-
-_EARTH_RADIUS_MILES = 3_958.8
 
 
 def haversine_miles(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -17,7 +16,7 @@ def haversine_miles(lat1: float, lng1: float, lat2: float, lng2: float) -> float
 
     a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-    return _EARTH_RADIUS_MILES * c
+    return EARTH_RADIUS_MILES * c
 
 
 def nearest_point_on_segment(

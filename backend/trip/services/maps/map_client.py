@@ -7,9 +7,10 @@ from abc import ABC, abstractmethod
 import httpx
 from pydantic import BaseModel
 
+from trip.core.constants import METRES_PER_MILE
+from trip.core.utils import haversine_miles
+from trip.domain.exceptions import GeocodingError, RouteNotFoundError
 from trip.domain.models import Coordinate
-from trip.exceptions import GeocodingError, RouteNotFoundError
-from trip.utils import haversine_miles
 
 _log = logging.getLogger(__name__)
 
@@ -48,15 +49,9 @@ class AbstractMapClient(ABC):
 class OpenRouteServiceClient(AbstractMapClient):
     """Concrete map client backed by OpenRouteService."""
 
-    _METERS_PER_MILE = 1_609.344
-
     def __init__(self, api_key: str, base_url: str = "https://api.openrouteservice.org") -> None:
         self._api_key = api_key
         self._base_url = base_url.rstrip("/")
-
-    # ------------------------------------------------------------------
-    # Geocoding
-    # ------------------------------------------------------------------
 
     def geocode(self, address: str) -> Coordinate:
         """Geocode an address string using the ORS geocode/search endpoint."""
@@ -107,10 +102,6 @@ class OpenRouteServiceClient(AbstractMapClient):
             return f"{city}, {region}"
         return city or region
 
-    # ------------------------------------------------------------------
-    # Routing
-    # ------------------------------------------------------------------
-
     @staticmethod
     def _decode_polyline(encoded: str) -> list[Coordinate]:
         """Decode a Google/ORS encoded polyline (precision 5) into Coordinates."""
@@ -140,7 +131,6 @@ class OpenRouteServiceClient(AbstractMapClient):
             raise RouteNotFoundError("At least two waypoints are required.")
 
         url = f"{self._base_url}/v2/directions/driving-car"
-        # Widen snap radius for rural/remote geocodes (default ORS is 350 m).
         snap_radius_m = 10_000
         body = {
             "coordinates": [[wp.lng, wp.lat] for wp in waypoints],
@@ -173,29 +163,24 @@ class OpenRouteServiceClient(AbstractMapClient):
         except (KeyError, IndexError) as exc:
             raise RouteNotFoundError("ORS returned no routes.") from exc
 
-        # Geometry is an encoded polyline string (precision=5)
         geometry = self._decode_polyline(route["geometry"])
 
         summary = route.get("summary", {})
-        total_miles = summary.get("distance", 0) / self._METERS_PER_MILE
+        total_miles = summary.get("distance", 0) / METRES_PER_MILE
         total_hrs = summary.get("duration", 0) / 3_600.0
 
-        # ORS may omit per-leg segments when instructions=false.
-        # Fall back to proportional haversine splits so callers always get
-        # one RouteSegment per consecutive waypoint pair.
         raw_segments = route.get("segments", [])
         if raw_segments:
             segments = [
                 RouteSegment(
                     from_coord=waypoints[i],
                     to_coord=waypoints[i + 1],
-                    distance_miles=seg["distance"] / self._METERS_PER_MILE,
+                    distance_miles=seg["distance"] / METRES_PER_MILE,
                     duration_hrs=seg["duration"] / 3_600.0,
                 )
                 for i, seg in enumerate(raw_segments)
             ]
         else:
-            # Proportional split by haversine distance
             leg_dists = [
                 haversine_miles(waypoints[i].lat, waypoints[i].lng, waypoints[i + 1].lat, waypoints[i + 1].lng)
                 for i in range(len(waypoints) - 1)

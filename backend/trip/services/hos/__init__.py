@@ -1,4 +1,3 @@
-"""Backward-compatible import path for HOSCalculatorService."""
 from trip.services.hos.calculator import HOSCalculatorService
 
 __all__ = ["HOSCalculatorService"]

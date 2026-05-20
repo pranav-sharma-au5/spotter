@@ -1,6 +1,6 @@
 """Geocoding service — resolves address strings to coordinates."""
 from trip.domain.models import Coordinate
-from trip.services.map_client import AbstractMapClient
+from trip.services.maps.map_client import AbstractMapClient
 
 
 class GeocodingService:
