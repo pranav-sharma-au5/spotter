@@ -29,6 +29,10 @@ npm install && npm run dev
 - API: `http://localhost:8000`
 - UI: `http://localhost:5173`
 
+### Frontend page structure
+
+Route pages use shared layout from `frontend/src/components/layout/` (`PageShell`, `PageScrollContent`, `PageSection`) and named section components under `frontend/src/components/<page>/`. Keep each page file as a short list of sections; put markup and copy in the section files.
+
 ## Environment Variables
 
 | Variable | Description | Required |

@@ -2,59 +2,27 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ClipboardCheck } from 'lucide-react';
 import { Eyebrow } from '../ui/Eyebrow';
+import { SelectableCard } from '../ui/SelectableCard';
 import { verificationRoutesQueryOptions } from '../../services/api';
 import { isVerificationEnabled } from '../../config/verification';
+import { getVerificationListState, getVerificationStatusDisplay } from './statusUtils';
 import type { VerificationRouteSummary } from '../../types/trip';
-
-function statusLabel(status: VerificationRouteSummary['status']): string {
-  switch (status) {
-    case 'ok':
-      return 'OK';
-    case 'failed':
-      return 'Failed';
-    case 'pending':
-      return 'Pending';
-    default:
-      return 'Not seeded';
-  }
-}
-
-function statusClass(status: VerificationRouteSummary['status']): string {
-  switch (status) {
-    case 'ok':
-      return 'text-green-500 border-green-500/30';
-    case 'failed':
-      return 'text-amber-400 border-amber-400/30';
-    default:
-      return 'text-text-muted border-border-medium';
-  }
-}
 
 function VerificationRouteCard({ route }: { route: VerificationRouteSummary }) {
   const navigate = useNavigate();
-  const canView = route.status === 'ok';
+  const { label, className, canView } = getVerificationStatusDisplay(route.status);
 
   return (
-    <button
-      type="button"
-      disabled={!canView}
+    <SelectableCard
+      isActive={canView}
+      isDisabled={!canView}
       onClick={() => navigate(`/verify/${route.slug}`)}
-      className={[
-        'flex flex-col gap-2 rounded-xl border p-4 text-left transition-colors',
-        canView
-          ? 'cursor-pointer border-border-subtle bg-bg-surface hover:border-border-medium hover:bg-bg-elevated'
-          : 'cursor-default border-border-subtle bg-bg-surface opacity-70',
-      ].join(' ')}
+      className="gap-2 p-4"
     >
       <div className="flex items-start justify-between gap-2">
         <p className="text-sm font-medium text-text-primary">{route.name}</p>
-        <span
-          className={[
-            'shrink-0 rounded-full border px-2 py-px text-[10px]',
-            statusClass(route.status),
-          ].join(' ')}
-        >
-          {statusLabel(route.status)}
+        <span className={['shrink-0 rounded-full border px-2 py-px text-[10px]', className].join(' ')}>
+          {label}
         </span>
       </div>
       <p className="text-xs text-text-secondary">
@@ -65,16 +33,22 @@ function VerificationRouteCard({ route }: { route: VerificationRouteSummary }) {
       {route.error_message && route.status === 'failed' && (
         <p className="line-clamp-2 text-[10px] text-amber-400">{route.error_message}</p>
       )}
-    </button>
+    </SelectableCard>
   );
 }
 
 export function VerificationRouteList() {
   const { data: routes, isError, isLoading } = useQuery(verificationRoutesQueryOptions());
+  const listState = getVerificationListState({
+    enabled: isVerificationEnabled,
+    isError,
+    isLoading,
+    routes,
+  });
 
-  if (!isVerificationEnabled) return null;
-  if (isError) return null;
-  if (isLoading) {
+  if (listState.kind === 'hidden' || listState.kind === 'empty') return null;
+
+  if (listState.kind === 'loading') {
     return (
       <section className="mt-10">
         <Eyebrow className="mb-3">Verification routes</Eyebrow>
@@ -82,7 +56,6 @@ export function VerificationRouteList() {
       </section>
     );
   }
-  if (!routes?.length) return null;
 
   return (
     <section className="mt-10">
@@ -94,7 +67,7 @@ export function VerificationRouteList() {
         Local test corridors with saved plans. Review map, itinerary, and ELD; copy for LLM scoring.
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {routes.map((route) => (
+        {listState.routes.map((route) => (
           <VerificationRouteCard key={route.slug} route={route} />
         ))}
       </div>

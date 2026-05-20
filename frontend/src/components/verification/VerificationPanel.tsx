@@ -1,108 +1,51 @@
-import { useState } from 'react';
-import { Check, Copy, Download, X } from 'lucide-react';
-import type { TripDay, VerificationRouteDetail } from '../../types/trip';
+import { useState, useCallback } from 'react';
+import { Copy, Download } from 'lucide-react';
+import type { TripDay, VerificationRouteDetail, VerificationRouteMeta } from '../../types/trip';
 import { Button } from '../ui/Button';
 import { Eyebrow } from '../ui/Eyebrow';
-import {
-  buildLlmReviewText,
-  daysWithinRange,
-  loadChecklist,
-  milesWithinTolerance,
-  saveChecklist,
-  type ManualChecklist,
-} from './verificationUtils';
+import { AutoCheck, ManualCheck } from './ChecklistItems';
+import { buildLlmReviewText } from './verificationChecks';
+import { loadChecklist, saveChecklist, type ManualChecklist } from './verificationStorage';
+import { useVerificationChecks } from '../../hooks/useVerificationChecks';
+import { useClipboardCopy } from '../../hooks/useClipboardCopy';
 import { getVerificationExportMarkdown } from '../../services/api';
 
 interface VerificationPanelProps {
   detail: VerificationRouteDetail;
 }
 
-function AutoCheck({
-  label,
-  pass,
-}: {
-  label: string;
-  pass: boolean | null;
-}) {
-  if (pass === null) return null;
-  return (
-    <li className="flex items-start gap-2 text-sm">
-      {pass ? (
-        <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-500" />
-      ) : (
-        <X className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
-      )}
-      <span className={pass ? 'text-text-secondary' : 'text-text-primary'}>{label}</span>
-    </li>
-  );
-}
-
-function ManualCheck({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label className="flex cursor-pointer items-start gap-2 text-sm text-text-secondary">
-      <input
-        type="checkbox"
-        className="mt-1"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      {label}
-    </label>
-  );
+async function fetchExportOrFallback(
+  slug: string,
+  route: VerificationRouteMeta,
+  orsMiles: number | null,
+  totalDays: number | null,
+  days: TripDay[],
+): Promise<string> {
+  try {
+    return await getVerificationExportMarkdown(slug);
+  } catch {
+    return buildLlmReviewText(route, orsMiles, totalDays, days ?? []);
+  }
 }
 
 export function VerificationPanel({ detail }: VerificationPanelProps) {
   const { route } = detail;
   const slug = route.slug;
-  const plan = detail.plan;
-  const summary = plan?.summary;
-  const days: TripDay[] = plan?.days ?? [];
+  const days = detail.plan?.days ?? [];
+  const checks = useVerificationChecks(detail);
 
   const [checklist, setChecklist] = useState<ManualChecklist>(() => loadChecklist(slug));
-  const [copyStatus, setCopyStatus] = useState<'idle' | 'ok' | 'error'>('idle');
 
-  const orsMiles = detail.ors_miles ?? summary?.total_miles ?? null;
-  const totalDays = summary?.total_days ?? null;
-
-  const milesOk =
-    orsMiles != null ? milesWithinTolerance(orsMiles, route.expected_miles) : null;
-  const daysOk =
-    totalDays != null
-      ? daysWithinRange(totalDays, route.expected_min_days, route.expected_max_days)
-      : null;
-
-  const dayLimitIssues = days.filter(
-    (d) => d.total_driving_hrs > 11.05 || d.total_on_duty_hrs > 14.05,
+  const getCopyText = useCallback(
+    () => fetchExportOrFallback(slug, route, checks.orsMiles, checks.totalDays, days),
+    [slug, route, checks.orsMiles, checks.totalDays, days],
   );
+  const { status: copyStatus, copy: handleCopyLlm } = useClipboardCopy(getCopyText);
 
   const updateChecklist = (patch: Partial<ManualChecklist>) => {
     const next = { ...checklist, ...patch };
     setChecklist(next);
     saveChecklist(slug, next);
-  };
-
-  const handleCopyLlm = async () => {
-    try {
-      let text: string;
-      try {
-        text = await getVerificationExportMarkdown(slug);
-      } catch {
-        text = buildLlmReviewText(route, orsMiles, totalDays, days);
-      }
-      await navigator.clipboard.writeText(text);
-      setCopyStatus('ok');
-      setTimeout(() => setCopyStatus('idle'), 2000);
-    } catch {
-      setCopyStatus('error');
-    }
   };
 
   const handleDownloadMd = () => {
@@ -153,16 +96,16 @@ export function VerificationPanel({ detail }: VerificationPanelProps) {
           </p>
           <ul className="space-y-2">
             <AutoCheck
-              label={`ORS miles (${orsMiles != null ? Math.round(orsMiles) : '—'}) within ±10% of ~${Math.round(route.expected_miles)}`}
-              pass={milesOk}
+              label={`ORS miles (${checks.orsMiles != null ? Math.round(checks.orsMiles) : '—'}) within ±10% of ~${Math.round(route.expected_miles)}`}
+              pass={checks.milesOk}
             />
             <AutoCheck
-              label={`Day count (${totalDays ?? '—'}) in range ${route.expected_min_days}–${route.expected_max_days}`}
-              pass={daysOk}
+              label={`Day count (${checks.totalDays ?? '—'}) in range ${route.expected_min_days}–${route.expected_max_days}`}
+              pass={checks.daysOk}
             />
             <AutoCheck
-              label={`All days ≤ 11h drive / 14h on-duty (${dayLimitIssues.length} issues)`}
-              pass={days.length > 0 ? dayLimitIssues.length === 0 : null}
+              label={`All days ≤ 11h drive / 14h on-duty (${checks.dayLimitIssues.length} issues)`}
+              pass={days.length > 0 ? checks.dayLimitIssues.length === 0 : null}
             />
           </ul>
         </div>

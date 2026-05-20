@@ -13,13 +13,9 @@ const STEPS: Step[] = [
 ];
 
 function stepIndex(step: PlanStep): number {
-  switch (step) {
-    case 'routing': return 0;
-    case 'scheduling': return 1;
-    case 'enriching': return 2;
-    case 'done': return 3;
-    default: return -1;
-  }
+  if (step === 'done') return STEPS.length;
+  const idx = STEPS.findIndex((s) => s.key === step);
+  return idx;
 }
 
 interface PlanningProgressProps {

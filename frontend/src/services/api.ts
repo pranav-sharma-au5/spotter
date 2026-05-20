@@ -32,36 +32,36 @@ export const apiClient = axios.create({
   timeout: 120_000,
 });
 
-interface ApiErrorBody {
+export interface ApiErrorBody {
   error?: string;
   code?: string;
   detail?: string | Record<string, unknown>;
 }
 
+const ERROR_MESSAGES: Record<string, string> = {
+  location_not_found:
+    "We couldn't find that location. Try being more specific, e.g. 'Dallas, TX'.",
+  route_not_found: "Couldn't find a route between those locations.",
+  insufficient_hours:
+    'Not enough hours this week for this trip. Plan a shorter trip or take a 34-hr restart.',
+  facility_data_unavailable:
+    'Facility data is temporarily unavailable. Please try again in a moment.',
+  invalid_request: 'Please check your trip inputs and try again.',
+};
+
 function mapErrorCode(
   code: string | undefined,
   detail?: string | Record<string, unknown>,
 ): string {
-  switch (code) {
-    case 'location_not_found':
-      return "We couldn't find that location. Try being more specific, e.g. 'Dallas, TX'.";
-    case 'route_not_found':
-      return "Couldn't find a route between those locations.";
-    case 'insufficient_hours':
-      return 'Not enough hours this week for this trip. Plan a shorter trip or take a 34-hr restart.';
-    case 'facility_data_unavailable':
-      return 'Facility data is temporarily unavailable. Please try again in a moment.';
-    case 'invalid_request':
-      return 'Please check your trip inputs and try again.';
-    case 'internal_error':
-      return typeof detail === 'string' ? detail : 'Something went wrong. Please try again.';
-    default:
-      if (typeof detail === 'string' && detail.trim()) return detail;
-      return 'Something went wrong. Please try again.';
+  if (code === 'internal_error') {
+    return typeof detail === 'string' ? detail : 'Something went wrong. Please try again.';
   }
+  if (code && ERROR_MESSAGES[code]) return ERROR_MESSAGES[code];
+  if (typeof detail === 'string' && detail.trim()) return detail;
+  return 'Something went wrong. Please try again.';
 }
 
-function mapAxiosError(err: AxiosError<ApiErrorBody>): string {
+export function mapAxiosError(err: AxiosError<ApiErrorBody>): string {
   if (!err.response) {
     if (err.code === 'ECONNABORTED') {
       return 'The request timed out. Long trips can take a minute — please try again.';
@@ -70,6 +70,11 @@ function mapAxiosError(err: AxiosError<ApiErrorBody>): string {
   }
   const { data } = err.response;
   return mapErrorCode(data?.error ?? data?.code, data?.detail);
+}
+
+export function mapPlanningError(err: unknown): string {
+  if (err instanceof AxiosError) return mapAxiosError(err);
+  return 'Something went wrong. Please try again.';
 }
 
 export async function planTrip(request: TripRequest): Promise<TripPlan> {

@@ -20,6 +20,16 @@ export interface RouteSpineProps {
   onSwapPickupDropoff: () => void;
 }
 
+export function confirmLocation(
+  field: RouteField,
+  suggestion: LocationSuggestion,
+  onChange: RouteSpineProps['onChange'],
+  onSelect: RouteSpineProps['onSelect'],
+): void {
+  onChange(field, suggestion.shortName);
+  onSelect(field, suggestion);
+}
+
 interface SpineDotProps {
   dotColour: string;
   dotSize?: number;
@@ -148,14 +158,8 @@ export function RouteSpine({ values, onChange, onSelect, onSwapPickupDropoff }: 
 
       {showPopularRoutes && (
         <PopularRouteSuggestions
-          onSelectPickup={(s) => {
-            onChange('pickup', s.shortName);
-            onSelect('pickup', s);
-          }}
-          onSelectDropoff={(s) => {
-            onChange('dropoff', s.shortName);
-            onSelect('dropoff', s);
-          }}
+          onSelectPickup={(s) => confirmLocation('pickup', s, onChange, onSelect)}
+          onSelectDropoff={(s) => confirmLocation('dropoff', s, onChange, onSelect)}
         />
       )}
     </div>

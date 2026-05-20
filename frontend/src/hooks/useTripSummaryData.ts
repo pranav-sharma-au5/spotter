@@ -1,5 +1,6 @@
 import { useTripStore } from '../stores/tripStore';
 import { addHoursToTime } from '../utils/format';
+import { countEventsByType, getAllEvents } from '../utils/tripEvents';
 
 export interface TripSummaryData {
   totalDrivingHrs: number;
@@ -19,9 +20,11 @@ export function useTripSummaryData(): TripSummaryData | null {
   const { days } = plan;
   const lastDay = days[days.length - 1];
 
+  const allEvents = getAllEvents(plan);
+
   return {
     totalDrivingHrs: days.reduce((sum, d) => sum + d.total_driving_hrs, 0),
-    fuelStopCount: days.flatMap((d) => d.events).filter((e) => e.type === 'fuel').length,
+    fuelStopCount: countEventsByType(allEvents, 'fuel'),
     estimatedArrival: addHoursToTime(lastDay.duty_start_time, lastDay.total_on_duty_hrs),
     restartDay: days.find((d) => d.events.some((e) => e.type === 'restart'))?.day_number,
   };

@@ -1,5 +1,6 @@
 import { EVENT_CONFIG } from '../../config/eventConfig';
 import { useTripStore } from '../../stores/tripStore';
+import { getAllEvents } from '../../utils/tripEvents';
 import type { EventType } from '../../types/trip';
 
 interface MapLegendProps {
@@ -14,8 +15,8 @@ export function MapLegend({ presentTypes }: MapLegendProps) {
 
   const types: EventType[] = presentTypes ?? (
     plan
-      ? [...new Set(plan.days.flatMap((d) => d.events).map((e) => e.type))].filter(
-          (t) => t !== 'drive' && EVENT_CONFIG[t].showInLegend,
+      ? [...new Set(getAllEvents(plan).map((e) => e.type))].filter(
+          (t) => EVENT_CONFIG[t].showInLegend,
         )
       : []
   );

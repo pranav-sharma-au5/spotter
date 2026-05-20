@@ -9,7 +9,7 @@ interface MapSectionProps {
 export function MapSection({ onMarkerClick }: MapSectionProps) {
   return (
     <div className="relative flex-1 overflow-hidden">
-      <RouteMap mode="summary" onMarkerClick={onMarkerClick} />
+      <RouteMap onMarkerClick={onMarkerClick} />
       <MapLegend />
     </div>
   );

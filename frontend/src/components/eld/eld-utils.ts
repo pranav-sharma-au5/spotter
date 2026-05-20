@@ -58,58 +58,65 @@ export interface Connector {
   y2: number;
 }
 
+export function parseDutyStartHour(day: TripDay): number {
+  const [hStr, mStr] = day.duty_start_time.split(':');
+  return parseInt(hStr, 10) + parseInt(mStr, 10) / 60;
+}
+
+function appendOffDutyGap(
+  segments: Segment[],
+  fromHour: number,
+  toHour: number,
+  row: 0 | 1 | 2 | 3 = 0,
+): void {
+  segments.push({
+    row,
+    x1: hourToX(fromHour),
+    x2: hourToX(toHour),
+    y: ROW_Y_CENTRES[row],
+  });
+}
+
+function appendEventSegment(
+  segments: Segment[],
+  event: ScheduledStop,
+  dutyStartHour: number,
+): number {
+  const absoluteStart = dutyStartHour + event.start_hour;
+  const absoluteEnd = absoluteStart + event.duration_hrs;
+  const row = getRowForEvent(event.type);
+
+  segments.push({
+    row,
+    x1: hourToX(absoluteStart),
+    x2: hourToX(Math.min(absoluteEnd, 24)),
+    y: ROW_Y_CENTRES[row],
+  });
+
+  return Math.min(absoluteEnd, 24);
+}
+
 export function buildSegments(day: TripDay): Segment[] {
   const segments: Segment[] = [];
-  const [hStr, mStr] = day.duty_start_time.split(':');
-  const dutyStartHour = parseInt(hStr, 10) + parseInt(mStr, 10) / 60;
+  const dutyStartHour = parseDutyStartHour(day);
 
-  // Before duty starts: off-duty on day 1 (at home), sleeper berth on subsequent
-  // days (rest carried over from the previous log sheet).
   if (dutyStartHour > 0) {
     const row: 0 | 1 | 2 | 3 = day.day_number > 1 ? 1 : 0;
-    segments.push({
-      row,
-      x1: hourToX(0),
-      x2: hourToX(dutyStartHour),
-      y: ROW_Y_CENTRES[row],
-    });
+    appendOffDutyGap(segments, 0, dutyStartHour, row);
   }
 
   let currentHour = dutyStartHour;
 
   for (const event of day.events) {
     const absoluteStart = dutyStartHour + event.start_hour;
-    const absoluteEnd = absoluteStart + event.duration_hrs;
-    const row = getRowForEvent(event.type);
-
-    // Gap between events: assume off-duty
     if (absoluteStart > currentHour) {
-      segments.push({
-        row: 0,
-        x1: hourToX(currentHour),
-        x2: hourToX(absoluteStart),
-        y: ROW_Y_CENTRES[0],
-      });
+      appendOffDutyGap(segments, currentHour, absoluteStart);
     }
-
-    segments.push({
-      row,
-      x1: hourToX(absoluteStart),
-      x2: hourToX(Math.min(absoluteEnd, 24)),
-      y: ROW_Y_CENTRES[row],
-    });
-
-    currentHour = Math.min(absoluteEnd, 24);
+    currentHour = appendEventSegment(segments, event, dutyStartHour);
   }
 
-  // Off-duty after last event until midnight
   if (currentHour < 24) {
-    segments.push({
-      row: 0,
-      x1: hourToX(currentHour),
-      x2: hourToX(24),
-      y: ROW_Y_CENTRES[0],
-    });
+    appendOffDutyGap(segments, currentHour, 24);
   }
 
   return segments;
@@ -147,24 +154,8 @@ export function formatLogTime(absoluteHour: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-function dutyStartHour(day: TripDay): number {
-  const [hStr, mStr] = day.duty_start_time.split(':');
-  return parseInt(hStr, 10) + parseInt(mStr, 10) / 60;
-}
-
-const REMARK_ACTIVITY: Partial<Record<EventType, string>> = {
-  drive: 'Driving',
-  break: 'Off-duty break',
-  fuel: 'Fueling',
-  rest: 'Sleeper berth',
-  pickup: 'Loading freight',
-  dropoff: 'Unloading freight',
-  on_duty: 'On-duty (not driving)',
-  restart: '34-hour restart',
-};
-
 function remarkForEvent(event: ScheduledStop): string {
-  return REMARK_ACTIVITY[event.type] ?? event.label;
+  return EVENT_CONFIG[event.type].eldRemark || event.label;
 }
 
 function cityState(event: ScheduledStop): string {
@@ -173,7 +164,7 @@ function cityState(event: ScheduledStop): string {
 
 /** FMCSA-style remarks: time, city/state, and activity for each duty-status change. */
 export function buildRemarks(day: TripDay): string[] {
-  const start = dutyStartHour(day);
+  const start = parseDutyStartHour(day);
   const remarks: string[] = [];
 
   if (start > 0) {
@@ -200,6 +191,57 @@ export function calcRowHours(day: TripDay): Record<0 | 1 | 2 | 3, number> {
     totals[seg.row] += hrs;
   }
   return totals;
+}
+
+export interface EldHeaderField {
+  label: string;
+  value: string;
+  y: number;
+  col: 'left' | 'right';
+}
+
+export function buildEldHeaderFields(opts: {
+  logDate: string;
+  driverNo: string;
+  carrierName: string;
+  driverName: string;
+  home: string;
+  initials: string;
+  vehicleNo: string;
+  coDriver: string;
+  trailerNo: string;
+  shipperName: string;
+  commodity: string;
+  load: string;
+  drivingMiles: number;
+  truckMiles: number;
+  from: string;
+  to: string;
+}): EldHeaderField[] {
+  const {
+    logDate, driverNo, carrierName, driverName, home, initials,
+    vehicleNo, coDriver, trailerNo, shipperName, commodity, load,
+    drivingMiles, truckMiles, from, to,
+  } = opts;
+
+  return [
+    { label: 'Date (24-hr period):', value: logDate, y: 28, col: 'left' },
+    { label: 'Driver No.:', value: driverNo, y: 28, col: 'right' },
+    { label: 'Carrier:', value: carrierName, y: 40, col: 'left' },
+    { label: 'Driver:', value: driverName, y: 40, col: 'right' },
+    { label: 'Home op. center:', value: home, y: 52, col: 'left' },
+    { label: 'Driver initials:', value: initials, y: 52, col: 'right' },
+    { label: 'Tractor No.:', value: vehicleNo, y: 64, col: 'left' },
+    { label: 'Co-Driver:', value: coDriver, y: 64, col: 'right' },
+    { label: 'Trailer No.:', value: trailerNo, y: 76, col: 'left' },
+    { label: 'Shipper:', value: shipperName, y: 76, col: 'right' },
+    { label: 'Commodity:', value: commodity, y: 88, col: 'left' },
+    { label: 'Load ID:', value: load, y: 88, col: 'right' },
+    { label: 'Total miles (driving):', value: String(Math.round(drivingMiles)), y: 100, col: 'left' },
+    { label: 'Total truck miles:', value: String(Math.round(truckMiles)), y: 100, col: 'right' },
+    { label: 'From:', value: from, y: 112, col: 'left' },
+    { label: 'To:', value: to, y: 112, col: 'right' },
+  ];
 }
 
 export function buildConnectors(segments: Segment[]): Connector[] {

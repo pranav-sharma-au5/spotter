@@ -2,6 +2,7 @@ import {
   buildSegments,
   buildConnectors,
   buildRemarks,
+  buildEldHeaderFields,
   hourToX,
   getLogDate,
   calcTotalMiles,
@@ -10,6 +11,7 @@ import {
   driverInitials,
   ELD_LAYOUT,
 } from './eld-utils';
+import type { EldHeaderField } from './eld-utils';
 import type { TripDay } from '../../types/trip';
 
 export interface ELDLogSheetProps {
@@ -68,10 +70,8 @@ const TEXT_STYLE = { fontFamily: FONT, fill: '#1a2a3a' } as const;
 const HEADER_LEFT = { labelX: 10, valueX: 108, lineEnd: 288 };
 const HEADER_RIGHT = { labelX: 370, valueX: 468, lineEnd: 648 };
 
-type HeaderField = { label: string; value: string; y: number; col: 'left' | 'right' };
-
 interface ELDHeaderProps {
-  fields: HeaderField[];
+  fields: EldHeaderField[];
 }
 
 function ELDHeader({ fields }: ELDHeaderProps) {
@@ -291,24 +291,24 @@ export function ELDLogSheet({
   const shipperName = shipper ?? from;
   const load = loadId ?? `LD-${String(day.day_number).padStart(3, '0')}`;
 
-  const headerFields: HeaderField[] = [
-    { label: 'Date (24-hr period):', value: logDate, y: 28, col: 'left' },
-    { label: 'Driver No.:', value: driverNo, y: 28, col: 'right' },
-    { label: 'Carrier:', value: carrierName, y: 40, col: 'left' },
-    { label: 'Driver:', value: driverName, y: 40, col: 'right' },
-    { label: 'Home op. center:', value: home, y: 52, col: 'left' },
-    { label: 'Driver initials:', value: initials, y: 52, col: 'right' },
-    { label: 'Tractor No.:', value: vehicleNo, y: 64, col: 'left' },
-    { label: 'Co-Driver:', value: coDriver, y: 64, col: 'right' },
-    { label: 'Trailer No.:', value: trailerNo, y: 76, col: 'left' },
-    { label: 'Shipper:', value: shipperName, y: 76, col: 'right' },
-    { label: 'Commodity:', value: commodity, y: 88, col: 'left' },
-    { label: 'Load ID:', value: load, y: 88, col: 'right' },
-    { label: 'Total miles (driving):', value: String(Math.round(drivingMiles)), y: 100, col: 'left' },
-    { label: 'Total truck miles:', value: String(Math.round(truckMiles)), y: 100, col: 'right' },
-    { label: 'From:', value: from, y: 112, col: 'left' },
-    { label: 'To:', value: to, y: 112, col: 'right' },
-  ];
+  const headerFields = buildEldHeaderFields({
+    logDate,
+    driverNo,
+    carrierName,
+    driverName,
+    home,
+    initials,
+    vehicleNo,
+    coDriver,
+    trailerNo,
+    shipperName,
+    commodity,
+    load,
+    drivingMiles,
+    truckMiles,
+    from,
+    to,
+  });
 
   return (
     <svg
