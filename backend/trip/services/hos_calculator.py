@@ -11,8 +11,8 @@ from trip.utils import coord_at_mile
 _log = logging.getLogger(__name__)
 
 # If a mandatory break falls within this many miles after a fuel deadline, merge
-# into one Break + Fuel stop (avoids fuel-then-break 10 mi later after a long leg).
-_BREAK_FUEL_COMBINE_MILES = 55.0
+# into one Break + Fuel stop (avoids fuel-then-break shortly after a long leg).
+_BREAK_FUEL_COMBINE_MILES = 100.0
 
 
 class HOSCalculatorService:

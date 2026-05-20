@@ -98,6 +98,8 @@ class RoutePlanResult(BaseModel):
     total_distance_miles: float
     pickup_distance_miles: float
     coordinates: RouteCoordinates
+    pickup_location_label: str = ""
+    dropoff_location_label: str = ""
 
 
 class ScheduleResult(BaseModel):

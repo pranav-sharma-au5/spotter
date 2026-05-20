@@ -1,5 +1,5 @@
 import { EVENT_CONFIG } from '../../config/eventConfig';
-import { EventDurationMiles, StopDetails } from '../shared/StopDetails';
+import { EventDurationMiles, StopDetails } from '../shared/stop-details';
 import type { ScheduledStop } from '../../types/trip';
 
 interface EventItemProps {

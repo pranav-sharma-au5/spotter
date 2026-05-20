@@ -1,6 +1,6 @@
 import { Marker, Popup } from 'react-map-gl/maplibre';
 import { EVENT_CONFIG } from '../../config/eventConfig';
-import { StopDetails } from '../shared/StopDetails';
+import { StopDetails } from '../shared/stop-details';
 import type { EventConfigEntry } from '../../config/eventConfig';
 import type { ScheduledStop } from '../../types/trip';
 

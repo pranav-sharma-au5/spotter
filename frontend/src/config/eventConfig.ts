@@ -17,6 +17,7 @@ export interface EventConfigEntry {
   showOnMap: boolean;
   variant: EventVariant;
   eldRemark: string;
+  showOpeningHours: boolean;
 }
 
 export const BADGE_CONFIG = {
@@ -35,6 +36,7 @@ export const EVENT_CONFIG: Record<EventType, EventConfigEntry> = {
     showOnMap: false,
     variant: 'drive',
     eldRemark: 'Driving',
+    showOpeningHours: false,
   },
   break: {
     colour: '#EF9F27',
@@ -46,6 +48,7 @@ export const EVENT_CONFIG: Record<EventType, EventConfigEntry> = {
     showOnMap: true,
     variant: 'stop',
     eldRemark: 'Off-duty break',
+    showOpeningHours: true,
   },
   fuel: {
     colour: '#639922',
@@ -57,6 +60,7 @@ export const EVENT_CONFIG: Record<EventType, EventConfigEntry> = {
     showOnMap: true,
     variant: 'stop',
     eldRemark: 'Fueling',
+    showOpeningHours: true,
   },
   rest: {
     colour: '#378ADD',
@@ -68,6 +72,7 @@ export const EVENT_CONFIG: Record<EventType, EventConfigEntry> = {
     showOnMap: true,
     variant: 'stop',
     eldRemark: 'Sleeper berth',
+    showOpeningHours: false,
   },
   pickup: {
     colour: '#D85A30',
@@ -79,6 +84,7 @@ export const EVENT_CONFIG: Record<EventType, EventConfigEntry> = {
     showOnMap: true,
     variant: 'stop',
     eldRemark: 'Loading freight',
+    showOpeningHours: true,
   },
   dropoff: {
     colour: '#D4537E',
@@ -90,6 +96,7 @@ export const EVENT_CONFIG: Record<EventType, EventConfigEntry> = {
     showOnMap: true,
     variant: 'stop',
     eldRemark: 'Unloading freight',
+    showOpeningHours: true,
   },
   restart: {
     colour: '#7F77DD',
@@ -101,6 +108,7 @@ export const EVENT_CONFIG: Record<EventType, EventConfigEntry> = {
     showOnMap: true,
     variant: 'stop',
     eldRemark: '34-hour restart',
+    showOpeningHours: false,
   },
   on_duty: {
     colour: '#888888',
@@ -112,5 +120,6 @@ export const EVENT_CONFIG: Record<EventType, EventConfigEntry> = {
     showOnMap: false,
     variant: 'stop',
     eldRemark: 'On-duty (not driving)',
+    showOpeningHours: true,
   },
 };

@@ -102,7 +102,7 @@ def test_break_combined_with_fuel_stop(make_geometry):
 
 
 def test_no_micro_break_immediately_after_fuel(calculator, make_geometry):
-    """After a long drive leg to fuel, a separate 10-mile break must not follow."""
+    """After a long drive leg to fuel, a separate break must not follow within 100 mi."""
     geo, cum = make_geometry(3_300.0)
     days = calculator.calculate(
         total_distance_miles=3_300.0,
@@ -117,7 +117,7 @@ def test_no_micro_break_immediately_after_fuel(calculator, make_geometry):
         if event.type != EventType.FUEL or i + 1 >= len(all_events):
             continue
         nxt = all_events[i + 1]
-        if nxt.type == EventType.BREAK and nxt.miles_from_prev < 50:
+        if nxt.type == EventType.BREAK and nxt.miles_from_prev < 100:
             pytest.fail(
                 f"Break only {nxt.miles_from_prev:.0f} mi after fuel — "
                 "should be combined Break + Fuel"

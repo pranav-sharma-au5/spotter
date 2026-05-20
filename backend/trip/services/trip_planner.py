@@ -103,6 +103,8 @@ class TripPlannerService:
                 pickup=coords["pickup"],
                 dropoff=coords["dropoff"],
             ),
+            pickup_location_label=request.pickup_location,
+            dropoff_location_label=request.dropoff_location,
         )
 
     def build_schedule(
@@ -173,6 +175,13 @@ class TripPlannerService:
                         enriched += 1
 
         _log.info("Enriched %d stops with facility data", enriched)
+
+        for day in days:
+            for event in day.events:
+                if event.type == EventType.PICKUP and route.pickup_location_label:
+                    event.location = route.pickup_location_label
+                elif event.type == EventType.DROPOFF and route.dropoff_location_label:
+                    event.location = route.dropoff_location_label
 
         if enrichable and enriched == 0:
             summary = self.facility_service.poi_error_summary()

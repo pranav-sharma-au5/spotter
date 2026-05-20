@@ -167,7 +167,27 @@ def test_select_best_tiebreaks_by_mile_when_field_count_equal():
 def test_is_machine_display_name():
     assert FacilityService.is_machine_display_name("Fuel")
     assert FacilityService.is_machine_display_name("Sinclair")
+    assert FacilityService.is_machine_display_name("24/7")
     assert not FacilityService.is_machine_display_name("Love's Travel Stop")
+
+
+def test_select_best_rest_prefers_truck_stop_over_fuel():
+    fuel = Facility(
+        id="1", name="24/7", type=FacilityType.FUEL,
+        lat=35.0, lng=-97.0, miles_from_start=0.0,
+        stop_info=StopInfo(opening_hours="24/7", city="Amarillo, TX"),
+    )
+    truck_stop = Facility(
+        id="2", name="Love's Travel Stop, Amarillo, TX",
+        type=FacilityType.TRUCK_STOP,
+        lat=35.1, lng=-97.1, miles_from_start=0.0,
+        stop_info=StopInfo(city="Amarillo, TX"),
+    )
+    candidates = [
+        (98.0, 8, fuel, True),
+        (90.0, 6, truck_stop, True),
+    ]
+    assert FacilityService._select_best_candidate(candidates, EventType.REST) is truck_stop
 
 
 def test_location_with_city_appends_city_to_generic_brand():

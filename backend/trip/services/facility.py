@@ -40,6 +40,7 @@ _MACHINE_PLACEHOLDERS: frozenset[str] = frozenset({
     "service station",
     "car repair",
     "car_repair",
+    "24/7",
 })
 
 # Single-word brand labels — need city/ref to be useful stop names.
@@ -187,7 +188,7 @@ class FacilityService:
                 )
             )
 
-        return self._select_best_candidate(candidates)
+        return self._select_best_candidate(candidates, event_type=event_type)
 
     def _fetch_poi_features(self, segment: list[Coordinate]) -> list[dict]:
         buffer_m = min(self._ORS_MAX_BUFFER_M, int(self._corridor_miles * self._METRES_PER_MILE))
@@ -248,12 +249,20 @@ class FacilityService:
     @staticmethod
     def _select_best_candidate(
         candidates: list[tuple[float, int, Facility, bool]],
+        event_type: EventType | None = None,
     ) -> Facility | None:
         if not candidates:
             return None
         max_mile = max(m for m, _, _, _ in candidates)
         in_window = [c for c in candidates if c[0] >= max_mile - _PICK_MILE_WINDOW]
         pool = in_window or candidates
+        if event_type in (EventType.REST, EventType.RESTART):
+            rest_suitable = [
+                c for c in pool
+                if c[2].type in (FacilityType.TRUCK_STOP, FacilityType.REST_AREA)
+            ]
+            if rest_suitable:
+                pool = rest_suitable
         quality = [c for c in pool if c[3]]
         pool = quality if quality else pool
         _, _, best, _ = max(pool, key=lambda item: (item[1], item[0]))
@@ -327,6 +336,8 @@ class FacilityService:
                 "services",
             ):
                 count += 2
+            elif ors_type == "fuel" and tags.get("amenity") != "truck_stop":
+                count -= 4
 
         return count
 
